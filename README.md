@@ -1,291 +1,301 @@
-# Yearn · 岁岁念
+# Yearn · 岁岁念 — Setup & Deployment Guide
 
 > **Yearn** /jɜːn/ — v. to long for, to miss deeply
+> **岁岁念** — 年年岁岁，惦念不忘
+>
+> A warm, modern birthday reminder app with full lunar calendar support
+> (FastAPI + Vue 3).
 
-A warm, modern birthday reminder app with full lunar calendar support.
-
-**[中文说明](./README_zh.md)** | **[中文文档](./README_zh.md)**
-
----
-
-## ✨ Features
-
-- Add / edit / delete birthdays (solar & lunar)
-- Lunar date picker with leap month support
-- Auto solar ↔ lunar conversion
-- List view + Card view
-- Calendar view (monthly)
-- "Upcoming" — next 30 days
-- Stats overview with pie chart
-- Batch select & delete
-- Pagination (page size persisted in localStorage)
-- Dark mode
-- i18n — Chinese / English toggle at runtime
-- Email + ServerChan reminders (30/15/7/1 days ahead)
-- Responsive design
+This guide is written for **Linux / Ubuntu LAN server deployment**, with Windows
+notes where they differ. The Chinese version is in [README_zh.md](./README_zh.md).
 
 ---
 
-## 🧱 Tech Stack
+## 1. Requirements
 
-| Layer | Technology |
-| --- | --- |
-| Backend | Python · FastAPI · SQLAlchemy · SQLite |
-| Frontend | Vue 3 · Vite · TailwindCSS · Axios |
-| Lunar | `lunardate` Python library |
-| Scheduler | APScheduler (cron 09:00 Asia/Shanghai) |
-| Reminders | SMTP Email + ServerChan |
-
----
-
-## 🚀 Quick Start
-
-### Prerequisites
-
-- Python 3.11+
-- Node.js 18+
-- npm 9+
-
-### Backend
-
-```powershell
-cd D:\project\yearn\backend
-$env:PYTHONPATH = "D:\project\yearn\backend"
-pip install -r requirements.txt
-python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
-```
-
-- API: `http://localhost:8000`
-- Swagger docs: `http://localhost:8000/docs`
-
-### Frontend
-
-```powershell
-cd D:\project\yearn\frontend
-npm install
-npm run dev
-```
-
-- App: `http://localhost:5173`
-
-### Test Data
-
-```powershell
-cd D:\project\yearn\backend
-$env:PYTHONPATH = "D:\project\yearn\backend"
-python reset_100.py    # generates 100 random records
-```
+| Dependency | Version | Notes |
+| --- | --- | --- |
+| Python | 3.11+ | 3.11/3.12 recommended (prebuilt wheels) |
+| Node.js | 18+ | Frontend runtime |
+| npm | 9+ | Ships with Node |
+| Git | any | To clone the code |
 
 ---
 
-## 📁 Project Structure
+## 2. Project Structure
 
 ```
 yearn/
-├── backend/
+├── backend/                # Backend (FastAPI + SQLite)
 │   ├── app/
-│   │   ├── core/
-│   │   │   ├── config.py          # Email, ServerChan, reminder settings
-│   │   │   └── database.py        # SQLite engine & session
-│   │   ├── models/
-│   │   │   └── birthday.py       # Birthday ORM model
-│   │   ├── schemas/
-│   │   │   └── birthday.py       # Pydantic schemas
-│   │   ├── services/
-│   │   │   ├── lunar.py          # Solar ↔ lunar conversion
-│   │   │   ├── reminder.py       # Email + ServerChan
-│   │   │   └── birthday.py       # CRUD + stats
-│   │   ├── routers/
-│   │   │   └── birthday.py      # REST API routes
-│   │   ├── scheduler.py          # APScheduler daily check
-│   │   └── main.py               # FastAPI entry point
+│   │   ├── core/           # config.py (reminders), database.py
+│   │   ├── models/         # ORM models
+│   │   ├── schemas/        # Pydantic models (field validation)
+│   │   ├── services/       # lunar, reminder, birthday (CRUD)
+│   │   ├── routers/        # REST endpoints
+│   │   ├── scheduler.py    # daily reminder scheduler
+│   │   └── main.py         # entry point
 │   ├── requirements.txt
-│   └── reset_100.py              # Generate 100 test records
-├── frontend/
+│   ├── reset_100.py        # generate 100 test records
+│   └── birthday.db         # SQLite DB (auto-created on first run)
+├── frontend/               # Frontend (Vue 3 + Vite)
 │   ├── src/
-│   │   ├── components/           # BirthdayCard, BirthdayTable, etc.
-│   │   ├── views/                 # HomeView, CalendarView, StatsView
-│   │   ├── locales/               # zh.json, en.json
-│   │   ├── composables/           # useApi.js, useI18n.js
-│   │   ├── router/
-│   │   ├── App.vue
-│   │   └── main.js
-│   ├── index.html
-│   ├── vite.config.js            # /api proxy → localhost:8000
-│   ├── tailwind.config.js        # Primary color: orange
+│   ├── vite.config.js      # host / allowedHosts / /api proxy configured
 │   └── package.json
-└── README.md
+├── README.md               # this file (English)
+└── README_zh.md            # Chinese guide
 ```
 
 ---
 
-## 📊 Data Model
+## 3. Quick Start (dev / direct LAN use)
 
-### `birthdays` table
+> Convention: backend on `0.0.0.0:8000`, frontend dev server on `0.0.0.0:5173`.
+> The frontend proxies `/api` to `localhost:8000` on the same machine.
 
-| Field | Type | Description |
-| --- | --- | --- |
-| `id` | Integer PK | Primary key |
-| `name` | String(100) | Name |
-| `solar_date` | String(10) | Solar date `YYYY-MM-DD` |
-| `lunar_date` | String(20) | Lunar date string |
-| `is_lunar` | Boolean | Whether birthday is lunar calendar |
-| `is_leap_month` | Boolean | Whether lunar month is leap |
-| `category` | String(50) | Category |
-| `remark` | Text | Notes |
-| `is_enabled` | Boolean | Reminder enabled |
-| `created_at` | DateTime | Created timestamp |
-| `updated_at` | DateTime | Updated timestamp |
+### 3.1 Backend
 
-> **Note**: Only month + day are stored from the lunar date — the year is not kept. When computing upcoming birthdays, the current year is used for conversion. This is intentional — most users remember their lunar birthday by month/day, not the lunar birth year.
+```bash
+cd /path/to/yearn/backend
+
+# create & activate a virtualenv (first time)
+python3 -m venv venv
+source venv/bin/activate
+
+# install dependencies (first time)
+pip install -r requirements.txt
+
+# run (listen on all interfaces for LAN access)
+uvicorn app.main:app --host 0.0.0.0 --port 8000
+```
+
+- API root: `http://<server-ip-or-host>:8000`
+- Swagger docs: `http://<server-ip-or-host>:8000/docs`
+- `birthday.db` is created automatically on first start.
+
+> **Windows (PowerShell)** differences: `cd backend`, then
+> `python -m venv venv`, `.\venv\Scripts\Activate.ps1`, `pip install -r requirements.txt`,
+> `uvicorn app.main:app --host 0.0.0.0 --port 8000`.
+>
+> **About PYTHONPATH**: running `python -m uvicorn ...` from inside `backend/`
+> already puts the current dir on the Python path, so no extra setup is needed.
+> To run from another directory, `export PYTHONPATH=/path/to/yearn/backend` first.
+
+### 3.2 Frontend
+
+```bash
+cd /path/to/yearn/frontend
+
+# install dependencies (first time)
+npm install
+
+# start dev server (host:true is configured, listens on 0.0.0.0)
+npm run dev
+```
+
+- App: `http://<server-ip-or-host>:5173`
+- e.g. on your box: `http://roc-ubuntu.local:5173`
+
+### 3.3 Seed test data (optional)
+
+```bash
+cd /path/to/yearn/backend
+source venv/bin/activate
+python reset_100.py        # wipes and generates 100 random records
+```
+
+> This script deletes all existing data first — **do not run it in production**.
 
 ---
 
-## 🔌 API Reference
+## 4. LAN / Server Access
 
-| Method | Path | Description |
-| --- | --- | --- |
-| GET | `/api/birthdays` | List all (supports `keyword` & `category` filter) |
-| GET | `/api/birthdays/upcoming?days=30` | Upcoming birthdays |
-| GET | `/api/birthdays/stats` | Statistics |
-| GET | `/api/birthdays/calendar?year=&month=` | Calendar view for a month |
-| GET | `/api/birthdays/{id}` | Get one record |
-| POST | `/api/birthdays` | Create |
-| PUT | `/api/birthdays/{id}` | Update |
-| DELETE | `/api/birthdays/{id}` | Delete |
+`frontend/vite.config.js` is already configured for LAN access:
 
-All list responses include `upcoming_date` and `days_until` (computed in real-time).
+```js
+server: {
+  host: true,                                   // listen on 0.0.0.0
+  allowedHosts: ['roc-ubuntu.local', 'localhost', '127.0.0.1'],
+  proxy: { '/api': { target: 'http://localhost:8000', changeOrigin: true } },
+}
+```
+
+- If you access via **IP** (e.g. `192.168.1.10:5173`) instead of a `.local` name,
+  change `allowedHosts` to `true` (allow all hosts), otherwise the browser shows
+  *“Blocked request. This host is not allowed”*.
+- For long-term exposure, prefer the production deployment below over `npm run dev`.
 
 ---
 
-## ⏰ Reminder System
+## 5. Production Deployment (build + Nginx)
 
-- **Schedule**: Every day at 09:00 (Asia/Shanghai)
-- **Advance days**: 30, 15, 7, 1 days before
+`npm run dev` is a dev server — not ideal to leave running. Build static files and
+reverse-proxy the backend with Nginx:
+
+```bash
+cd /path/to/yearn/frontend
+npm install
+npm run build          # output in frontend/dist/
+```
+
+Nginx example (`/etc/nginx/sites-available/yearn`):
+
+```nginx
+server {
+    listen 80;
+    server_name roc-ubuntu.local;   # or your domain / IP
+
+    root /path/to/yearn/frontend/dist;
+    index index.html;
+    try_files $uri $uri/ /index.html;
+
+    location /api/ {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+}
+```
+
+Run the backend as a service (systemd / nohup):
+
+```bash
+cd /path/to/yearn/backend
+source venv/bin/activate
+uvicorn app.main:app --host 127.0.0.1 --port 8000
+```
+
+> The reminder scheduler (daily 09:00 Asia/Shanghai) must run separately and stay
+> up: `python -m app.scheduler` (from `backend/`, with venv activated).
+
+---
+
+## 6. Reminder System
+
+- **Schedule**: daily 09:00 (Asia/Shanghai)
+- **Lead times**: 30, 15, 7, 1 days ahead
 - **Channels**: Email (SMTP) + ServerChan
-- **Dedup**: Same person + same advance window → no duplicate notifications
+- **Dedup**: same person + same lead window → no duplicate
 
-### Configuration
-
-Edit `backend/app/core/config.py`:
+### Configure (`backend/app/core/config.py`)
 
 ```python
 EMAIL_CONFIG = {
-    "enabled": True,         # Set True to enable
-    "smtp_host": "smtp.163.com",   # or smtp.qq.com / smtp.gmail.com
+    "enabled": True,
+    "smtp_host": "smtp.163.com",     # or smtp.qq.com / smtp.gmail.com
     "smtp_port": 587,
     "smtp_user": "your@email.com",
-    "smtp_pass": "your_app_password",   # Not your login password!
+    "smtp_pass": "your_app_password", # app password, NOT login password
     "from_name": "🎂 Birthday Reminder",
     "to_email": "notify@example.com",
 }
 
 SERVERCHAN_CONFIG = {
-    "enabled": True,         # Set True to enable
-    "sckey": "SCT...",      # Get from sc.ftqq.com
+    "enabled": True,
+    "sckey": "SCT...",               # from sc.ftqq.com
 }
 
 REMIND_AHEAD_DAYS = [30, 15, 7, 1]
 ```
 
-### Run Scheduler Manually
+### Run the scheduler once manually
 
-```powershell
-cd D:\project\yearn\backend
-$env:PYTHONPATH = "D:\project\yearn\backend"
+```bash
+cd /path/to/yearn/backend
+source venv/bin/activate
 python -m app.scheduler
 ```
 
 ---
 
-## 🌍 Internationalization
+## 7. Data Model (`birthdays` table)
 
-The app supports Chinese and English with a runtime toggle in the navbar. Language preference is persisted in `localStorage`.
+| Field | Type | Description |
+| --- | --- | --- |
+| `id` | Integer PK | primary key |
+| `name` | String(100) | name |
+| `solar_date` | String(10) | solar date `YYYY-MM-DD` |
+| `lunar_date` | String(20) | lunar date `YYYY-MM-DD` (lunar birthdays) |
+| `is_lunar` | Boolean | whether lunar |
+| `is_leap_month` | Boolean | whether leap month |
+| `category` | String(50) | `家人/朋友/同事/同学/客户/other` |
+| `remark` | Text | notes |
+| `is_enabled` | Boolean | reminder enabled |
+| `created_at` / `updated_at` | DateTime | timestamps |
 
-To add a new language:
-1. Create `frontend/src/locales/{lang}.json`
-2. Add `{lang}` to the supported list in `useI18n.js`
-3. Add a toggle option in `App.vue`
-
----
-
-## 🎨 Design
-
-- **Primary color**: Warm orange/coral (`#f97316` → `#fb7185`)
-- **Style**: Clean, modern, rounded cards, gradient avatars
-- **Layout**: Sidebar + main content, fully responsive
-- **Dark mode**: Toggle in navbar, persisted
-
----
-
-## 🛠️ Development Guide
-
-### Add a new API endpoint
-
-1. Add method in `services/birthday.py`
-2. Add route in `routers/birthday.py`
-3. Add schema in `schemas/birthday.py` if needed
-
-### Add a new frontend view
-
-1. Create `.vue` in `src/views/`
-2. Add route in `src/router/index.js`
-3. Add nav link in `App.vue`
-
-### Change reminder logic
-
-- Send logic → `services/reminder.py`
-- Schedule / timing → `scheduler.py`
-- Advance days → `core/config.py`
+> Lunar stores month/day only, not the year; "upcoming" is computed with the
+> current year. This is intentional.
 
 ---
 
-## ❓ FAQ
+## 8. API Reference
 
-<details>
-<summary><b>pip install fails with pydantic-core compilation error</b></summary>
+| Method | Path | Description |
+| --- | --- | --- |
+| GET | `/api/birthdays` | List (supports `keyword`, `category`) |
+| GET | `/api/birthdays/upcoming?days=30` | Birthdays within N days |
+| GET | `/api/birthdays/stats` | Statistics |
+| GET | `/api/birthdays/calendar?year=&month=` | A month's calendar data |
+| GET | `/api/birthdays/{id}` | Single record |
+| POST | `/api/birthdays` | Create |
+| PUT | `/api/birthdays/{id}` | Update |
+| DELETE | `/api/birthdays/{id}` | Delete |
 
-Use Python 3.11+ which has pre-built wheels. If on Python 3.14, upgrade pip first:
+List responses include real-time `upcoming_date` and `days_until`.
 
-```powershell
-python -m pip install --upgrade pip
-pip install -r requirements.txt
+---
+
+## 9. FAQ
+
+**Q1: Browser says "Blocked request. This host is not allowed"**
+A: Vite blocked a non-allowlisted host. `vite.config.js` already sets `host: true`
+and `allowedHosts`. If accessing by IP, set `allowedHosts: true`.
+
+**Q2: List / cards empty, console shows `/api/birthdays` 500**
+A: Usually a `category` value outside the allowlist
+(`家人/朋友/同事/同学/客户/other`) failing response validation. The code now
+tolerates unknown categories (normalized to `other`) and the test script's
+category value was fixed — **restart the backend** to recover. If it persists,
+check the DB for odd `category` values.
+
+**Q3: `pip install` fails with pydantic-core compile error**
+A: Use Python 3.11+. If it still fails, `pip install --upgrade pip` first.
+
+**Q4: Port 8000 / 5173 already in use**
+Linux:
+```bash
+sudo lsof -i:8000
+kill -9 <PID>
 ```
-</details>
-
-<details>
-<summary><b>Port 8000 / 5173 already in use</b></summary>
-
+Windows (PowerShell):
 ```powershell
 Get-NetTCPConnection -LocalPort 8000 -State Listen | Select OwningProcess | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force }
 ```
-</details>
 
-<details>
-<summary><b>Reminders not sending</b></summary>
+**Q5: Schema changed and startup errors out**
+A: Delete `backend/birthday.db` and restart (SQLAlchemy recreates tables).
+For keeping existing data, use Alembic migrations.
 
-1. Check `config.py` — `enabled` must be `True`
-2. Verify SMTP credentials / ServerChan SCKEY
-3. Confirm scheduler is running (check backend logs)
-4. Verify the person's `is_enabled` is `True`
-</details>
-
-<details>
-<summary><b>Database schema changed after code update</b></summary>
-
-Delete `birthday.db` and restart — SQLAlchemy auto-creates tables on startup.  
-For production with existing data, use Alembic for migrations.
-</details>
+**Q6: Reminders not sending**
+A: Check: ① `enabled=True` in `config.py`; ② correct SMTP app password / ServerChan
+SCKEY; ③ scheduler `python -m app.scheduler` is running; ④ the contact's
+`is_enabled=True`.
 
 ---
 
-## 📄 License
+## 10. Development (brief)
 
-MIT License
+- **Add an endpoint**: method in `services/birthday.py` → route in
+  `routers/birthday.py` → schema in `schemas/birthday.py` if needed.
+- **Add a page**: `.vue` in `src/views/` → route in `src/router/index.js` →
+  nav link in `App.vue`.
+- **Change reminder logic**: sending in `services/reminder.py`, scheduling in
+  `scheduler.py`, lead days in `core/config.py`.
+- **Add a language**: create `src/locales/{lang}.json`, register in `useI18n.js`
+  and `App.vue`.
 
 ---
 
-<p align="center">
-  <strong>Yearn · 岁岁念</strong><br>
-  Made with 🧡 for remembering every birthday that matters.
-</p>
+## License
+
+MIT License · Made with 🧡 for remembering every birthday that matters.

@@ -30,9 +30,12 @@ class BirthdayBase(BaseModel):
     def validate_category(cls, v):
         if isinstance(v, str):
             v = v.strip()
-        if v not in ("家人", "朋友", "同事", "同学", "客户", "other"):
-            raise ValueError('category must be one of the allowed values')
-        return v
+        allowed = ("家人", "朋友", "同事", "同学", "客户", "other")
+        if v in allowed:
+            return v
+        # 容错：遇到未知/历史脏数据（如旧脚本写入的"其他"）归一为 other，
+        # 避免单条脏数据导致整个列表接口 500
+        return "other"
 
 
 # ========== 创建 Schema ==========
@@ -72,9 +75,10 @@ class BirthdayUpdate(BaseModel):
             return v
         if isinstance(v, str):
             v = v.strip()
-        if v not in ("家人", "朋友", "同事", "同学", "客户", "other"):
-            raise ValueError('category must be one of the allowed values')
-        return v
+        allowed = ("家人", "朋友", "同事", "同学", "客户", "other")
+        if v in allowed:
+            return v
+        return "other"
 
 
 # ========== 响应 Schema ==========
