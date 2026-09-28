@@ -104,21 +104,76 @@
 
     <!-- 右侧主内容 -->
     <div class="flex-1 min-w-0 space-y-6 pb-20">
-      <!-- 即将到来列表（横向滚动） -->
+      <!-- 即将到来列表（横向滚动：滚轮转横向 + 拖拽不选中 + 自定义进度条 + 左右箭头） -->
       <div v-if="upcoming.length > 0" class="bg-gradient-to-r from-primary-50 to-orange-50 dark:from-primary-900/20 dark:to-orange-900/20 rounded-2xl p-4">
         <h3 class="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-3">🎉 {{ t('home.upcoming') }}</h3>
-        <div class="flex gap-3 overflow-x-auto pb-1">
-          <div
-            v-for="b in upcoming.slice(0, 10)"
-            :key="b.id"
-            class="flex-shrink-0 bg-white dark:bg-gray-800 rounded-xl px-4 py-3 shadow-sm border border-primary-100 dark:border-primary-800/30 min-w-[140px]"
+        <div class="upcoming-wrapper relative">
+          <!-- 边缘渐变：静态提示还有内容可看 -->
+          <div v-show="upcomingCanPrev" class="upcoming-fade upcoming-fade-left" aria-hidden="true"></div>
+          <div v-show="upcomingCanNext" class="upcoming-fade upcoming-fade-right" aria-hidden="true"></div>
+
+          <!-- 左箭头：hover 才出现 -->
+          <button
+            v-show="upcomingCanPrev"
+            type="button"
+            aria-label="Previous"
+            class="upcoming-arrow upcoming-arrow-left"
+            @click="scrollUpcomingBy(-1)"
           >
-            <div class="text-xs text-primary-500 font-bold mb-1">
-              {{ b.days_until === 0 ? t('home.today') : tf('home.daysUntil', { days: b.days_until }) }}
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+          </button>
+
+          <!-- 滚动容器 -->
+          <div
+            ref="upcomingScroll"
+            class="upcoming-scroll flex gap-3 pb-2"
+            @scroll="updateUpcomingScrollState"
+            @mousedown="onUpcomingPointerDown"
+          >
+            <div
+              v-for="b in upcoming.slice(0, 10)"
+              :key="b.id"
+              class="upcoming-card flex-shrink-0 bg-white dark:bg-gray-800 rounded-xl px-4 py-3 shadow-sm border border-primary-100 dark:border-primary-800/30 min-w-[140px]"
+            >
+              <div class="text-xs text-primary-500 font-bold mb-1">
+                {{ b.days_until === 0 ? t('home.today') : tf('home.daysUntil', { days: b.days_until }) }}
+              </div>
+              <div class="font-bold text-gray-800 dark:text-white truncate">{{ b.name }}</div>
+              <div class="text-xs text-gray-400 mt-0.5">{{ b.upcoming_date }}</div>
             </div>
-            <div class="font-bold text-gray-800 dark:text-white truncate">{{ b.name }}</div>
-            <div class="text-xs text-gray-400 mt-0.5">{{ b.upcoming_date }}</div>
           </div>
+
+          <!-- 右箭头 -->
+          <button
+            v-show="upcomingCanNext"
+            type="button"
+            aria-label="Next"
+            class="upcoming-arrow upcoming-arrow-right"
+            @click="scrollUpcomingBy(1)"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+          </button>
+        </div>
+
+        <!-- 自定义进度条（只在能滚动时显示） -->
+        <div
+          v-if="upcomingHasOverflow"
+          ref="upcomingTrack"
+          class="upcoming-progress-track"
+          @mousedown="onProgressPointerDown"
+          :title="lang === 'zh' ? '拖动或点击跳转' : 'Drag or click to jump'"
+        >
+          <div
+            class="upcoming-progress-thumb"
+            :style="{
+              width: upcomingThumbWidthPct + '%',
+              transform: `translateX(${upcomingThumbOffsetPct}%)`,
+            }"
+          ></div>
         </div>
       </div>
 
@@ -299,7 +354,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import BirthdayTable from '../components/BirthdayTable.vue'
 import BirthdayCard from '../components/BirthdayCard.vue'
 import BirthdayModal from '../components/BirthdayModal.vue'
@@ -313,6 +368,17 @@ const { listBirthdays, listUpcoming, createBirthday, updateBirthday, deleteBirth
 const birthdays = ref([])
 const upcoming = ref([])
 const keyword = ref('')
+
+// 即将到来 横向滚动 状态
+const upcomingScroll = ref(null)
+const upcomingTrack = ref(null)
+const upcomingCanPrev = ref(false)
+const upcomingCanNext = ref(false)
+const upcomingHasOverflow = ref(false)
+const upcomingThumbWidthPct = ref(100)
+const upcomingThumbOffsetPct = ref(0)
+const draggingUpcoming = ref(false)  // 拖动卡片时禁止滚轮劫持
+let upcomingResizeObserver = null
 
 const viewMode = ref(localStorage.getItem('viewMode') || 'list')
 const modalShow = ref(false)
@@ -445,7 +511,163 @@ onMounted(() => {
 
 onUnmounted(() => {
   window.removeEventListener('keydown', handleKeydown)
+  unbindUpcomingEvents()
 })
+
+// 即将到来 横向滚动：绑定滚轮/Resize 等事件（数据加载后 dom 才存在，所以用 watch + nextTick）
+function bindUpcomingEvents() {
+  const el = upcomingScroll.value
+  if (!el || el.__upcomingBound) return
+  el.__upcomingBound = true
+  // passive:false 让我们能 preventDefault，把垂直滚轮转横向滚动
+  el.addEventListener('wheel', onUpcomingWheel, { passive: false })
+  if (typeof ResizeObserver !== 'undefined') {
+    upcomingResizeObserver = new ResizeObserver(updateUpcomingScrollState)
+    upcomingResizeObserver.observe(el)
+  }
+  updateUpcomingScrollState()
+}
+
+function unbindUpcomingEvents() {
+  const el = upcomingScroll.value
+  if (el) {
+    el.removeEventListener('wheel', onUpcomingWheel)
+    el.__upcomingBound = false
+  }
+  if (upcomingResizeObserver) {
+    upcomingResizeObserver.disconnect()
+    upcomingResizeObserver = null
+  }
+}
+
+watch(() => upcoming.value.length, () => {
+  nextTick(bindUpcomingEvents)
+}, { immediate: true })
+
+function updateUpcomingScrollState() {
+  const el = upcomingScroll.value
+  if (!el) return
+  const max = el.scrollWidth - el.clientWidth
+  const hasOverflow = max > 1
+  upcomingHasOverflow.value = hasOverflow
+  upcomingCanPrev.value = el.scrollLeft > 2
+  upcomingCanNext.value = el.scrollLeft < max - 2
+  if (hasOverflow) {
+    // 最小 15%，最大 100%，防呆
+    const widthPct = Math.min(100, Math.max(15, (el.clientWidth / el.scrollWidth) * 100))
+    upcomingThumbWidthPct.value = widthPct
+    // translateX 的 % 是相对 thumb 自身宽度：要走完轨道上 (100-widthPct)% 的距离
+    // 需要 translateX( (100-widthPct)/widthPct * 100 %)
+    const maxOffsetPct = ((100 - widthPct) / widthPct) * 100
+    upcomingThumbOffsetPct.value = (el.scrollLeft / max) * maxOffsetPct
+  }
+}
+
+function scrollUpcomingBy(dir) {
+  const el = upcomingScroll.value
+  if (!el) return
+  const card = el.querySelector('.upcoming-card')
+  const step = card ? card.offsetWidth + 12 : el.clientWidth * 0.8
+  el.scrollBy({ left: step * dir, behavior: 'smooth' })
+}
+
+function onProgressPointerDown(e) {
+  if (e.button !== 0) return
+  e.preventDefault()
+  const scrollEl = upcomingScroll.value
+  const trackEl = upcomingTrack.value
+  if (!scrollEl || !trackEl) return
+
+  // 拖动期间强制 scroll-behavior:auto，免得 smooth 跟不上手指/鼠标
+  const prevBehavior = scrollEl.style.scrollBehavior
+  scrollEl.style.scrollBehavior = 'auto'
+  trackEl.classList.add('is-dragging')
+  const blockSelect = (ev) => ev.preventDefault()
+  trackEl.addEventListener('selectstart', blockSelect)
+
+  const applyFromX = (clientX) => {
+    const rect = trackEl.getBoundingClientRect()
+    const ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width))
+    const max = scrollEl.scrollWidth - scrollEl.clientWidth
+    scrollEl.scrollLeft = ratio * max
+  }
+  // 鼠标落点立即跳一次
+  applyFromX(e.clientX)
+
+  const onMove = (ev) => applyFromX(ev.clientX)
+  const onUp = () => {
+    scrollEl.style.scrollBehavior = prevBehavior
+    trackEl.classList.remove('is-dragging')
+    trackEl.removeEventListener('selectstart', blockSelect)
+    window.removeEventListener('mousemove', onMove)
+    window.removeEventListener('mouseup', onUp)
+  }
+  window.addEventListener('mousemove', onMove)
+  window.addEventListener('mouseup', onUp)
+}
+
+function onUpcomingWheel(e) {
+  // 拖动卡片中不接管（避免跟拖拽中额外产生的 wheel 事件打架）
+  if (draggingUpcoming.value) return
+  // 触控板水平滑动 / 本身就是横向滚动 → 不拦截，让原生处理
+  if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return
+  if (e.deltaY === 0) return
+  // 普通鼠标垂直滚轮 / 触控板垂直手势 → 转横向滚动
+  e.preventDefault()
+  const el = upcomingScroll.value
+  if (!el) return
+  el.scrollLeft += e.deltaY
+}
+
+function onUpcomingPointerDown(e) {
+  if (e.button !== 0) return
+  const el = upcomingScroll.value
+  if (!el) return
+  draggingUpcoming.value = true
+  const startX = e.clientX
+  let lastX = startX
+  const max = el.scrollWidth - el.clientWidth
+
+  // 拖动期间禁用 smooth scroll，否则多次 scrollLeft 赋值会动画接力造成“弹射”
+  const prevBehavior = el.style.scrollBehavior
+  el.style.scrollBehavior = 'auto'
+  el.classList.add('is-dragging')
+  const blockSelect = (ev) => ev.preventDefault()
+  el.addEventListener('selectstart', blockSelect)
+
+  // rAF 节流：把 mousemove 间碎片的 delta 累积到下一帧再更新 scrollLeft，
+  // 使滚动更新跟 vsync 对齐，避免跟手不顺/打滑
+  let pendingDelta = 0
+  let rafId = 0
+  const flush = () => {
+    rafId = 0
+    if (pendingDelta === 0) return
+    const next = el.scrollLeft - pendingDelta
+    pendingDelta = 0
+    el.scrollLeft = Math.max(0, Math.min(max, next))
+  }
+
+  const onMove = (ev) => {
+    pendingDelta += ev.clientX - lastX
+    lastX = ev.clientX
+    if (!rafId) rafId = requestAnimationFrame(flush)
+  }
+  const onUp = () => {
+    // mouseup 那一刻如果有积攒的 delta，冲刷一次
+    if (rafId) {
+      cancelAnimationFrame(rafId)
+      flush()
+    }
+    draggingUpcoming.value = false
+    el.style.scrollBehavior = prevBehavior
+    el.classList.remove('is-dragging')
+    el.removeEventListener('selectstart', blockSelect)
+    window.removeEventListener('mousemove', onMove)
+    window.removeEventListener('mouseup', onUp)
+  }
+  window.addEventListener('mousemove', onMove)
+  window.addEventListener('mouseup', onUp)
+}
 
 async function loadData() {
   try {
@@ -522,5 +744,138 @@ async function confirmDelete() {
 .slide-up-leave-to {
   opacity: 0;
   transform: translateY(10px);
+}
+
+/* === 即将到来 横向滚动 === */
+.upcoming-scroll {
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-behavior: smooth;
+  scrollbar-width: none;            /* Firefox */
+  -ms-overflow-style: none;         /* IE/old Edge */
+  user-select: none;
+  -webkit-user-select: none;
+}
+.upcoming-scroll::-webkit-scrollbar {
+  display: none;                    /* Chrome/Safari/Edge */
+}
+.upcoming-card {
+  /* 桌面上提示可拖拽 */
+}
+@media (hover: hover) and (pointer: fine) {
+  .upcoming-card {
+    cursor: grab;
+  }
+}
+.upcoming-scroll.is-dragging,
+.upcoming-scroll.is-dragging * {
+  cursor: grabbing !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+}
+
+.upcoming-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%) scale(0.85);
+  z-index: 5;
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.96);
+  border: none;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.04);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #f97316;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.18s ease, transform 0.18s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+.upcoming-wrapper:hover .upcoming-arrow {
+  opacity: 1;
+  transform: translateY(-50%) scale(1);
+  pointer-events: auto;
+}
+.upcoming-arrow:hover {
+  background: #ffffff;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.05);
+  transform: translateY(-50%) scale(1.08) !important;
+}
+.upcoming-arrow:active {
+  transform: translateY(-50%) scale(0.95) !important;
+}
+.upcoming-arrow svg {
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+.upcoming-arrow-left  { left: -10px; }
+.upcoming-arrow-right { right: -10px; }
+@media (max-width: 640px) {
+  .upcoming-arrow { display: none !important; }
+}
+
+/* 边缘渐变提示：提示“还有内容” */
+.upcoming-fade {
+  position: absolute;
+  top: 0;
+  bottom: 4px;
+  width: 40px;
+  pointer-events: none;
+  z-index: 4;
+}
+.upcoming-fade-left {
+  left: 0;
+  background: linear-gradient(to right, rgba(255, 237, 213, 0.85), transparent);
+}
+.upcoming-fade-right {
+  right: 0;
+  background: linear-gradient(to left, rgba(255, 237, 213, 0.85), transparent);
+}
+:global(html.dark) .upcoming-fade-left,
+:global(.dark) .upcoming-fade-left {
+  background: linear-gradient(to right, rgba(124, 45, 18, 0.55), transparent);
+}
+:global(html.dark) .upcoming-fade-right,
+:global(.dark) .upcoming-fade-right {
+  background: linear-gradient(to left, rgba(124, 45, 18, 0.55), transparent);
+}
+
+.upcoming-progress-track {
+  height: 4px;
+  background: rgba(0, 0, 0, 0.06);
+  border-radius: 999px;
+  margin-top: 6px;
+  cursor: pointer;
+  position: relative;
+  user-select: none;
+  -webkit-user-select: none;
+  /* 命中区扩大，点击/拖动更轻松 */
+  padding: 6px 0;
+  background-clip: content-box;
+}
+.upcoming-progress-track:hover .upcoming-progress-thumb,
+.upcoming-progress-track.is-dragging .upcoming-progress-thumb {
+  height: 6px;
+  margin-top: -1px;
+}
+.upcoming-progress-track:hover {
+  background-color: rgba(0, 0, 0, 0.09);
+}
+.upcoming-progress-thumb {
+  height: 100%;
+  background: linear-gradient(90deg, #f97316, #fb7185);
+  border-radius: 999px;
+  transition: transform 0.08s linear, height 0.12s ease, margin-top 0.12s ease;
+  min-width: 24px;
+  cursor: grab;
+  pointer-events: none;  /* 让 mousedown 始终落到 track 上，避免拖到 thumb 边角脱手 */
+}
+.upcoming-progress-track.is-dragging,
+.upcoming-progress-track.is-dragging .upcoming-progress-thumb {
+  cursor: grabbing !important;
 }
 </style>
