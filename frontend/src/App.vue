@@ -7,7 +7,7 @@
           <!-- Logo -->
           <div class="flex items-center gap-2">
             <span class="text-2xl">🎂</span>
-            <span class="font-bold text-lg text-gray-800 dark:text-white">Yearn · {{ t('app.title') }}</span>
+            <span class="font-bold text-lg text-gray-800 dark:text-white">{{ t('app.title') }}</span>
           </div>
 
           <!-- 导航链接 -->

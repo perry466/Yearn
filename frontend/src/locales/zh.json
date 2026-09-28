@@ -51,6 +51,7 @@
     "name": "姓名",
     "namePlaceholder": "请输入姓名",
     "dateType": "日期类型",
+    "dateTypeHint": "选择公历或农历",
     "solar": "公历",
     "lunar": "农历",
     "solarDate": "公历日期",

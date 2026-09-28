@@ -59,20 +59,15 @@
           <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">{{ lang === 'zh' ? '操作' : 'Actions' }}</label>
 
           <!-- 选择按钮 -->
-          <div class="relative group" v-if="selectedIds.size === 0">
-            <button
-              @click="enterSelectMode"
-              class="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:border-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/30 hover:text-primary-500 transition-all text-sm"
-            >
-              <span>☑️</span>
-              <span>{{ t('home.selectMode') }}</span>
-            </button>
-            <div class="absolute left-full ml-2 top-1/2 -translate-y-1/2 hidden group-hover:block z-50 pointer-events-none">
-              <div class="bg-gray-900 dark:bg-gray-700 text-white text-xs rounded-lg px-3 py-1.5 whitespace-nowrap">
-                {{ lang === 'zh' ? '进入选择模式批量删除' : 'Enter select mode for batch delete' }}
-              </div>
-            </div>
-          </div>
+          <button
+            v-if="selectedIds.size === 0"
+            @click="enterSelectMode"
+            class="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:border-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/30 hover:text-primary-500 transition-all text-sm"
+            :title="lang === 'zh' ? '勾选多条记录后批量删除' : 'Select multiple records to batch delete'"
+          >
+            <span>☑️</span>
+            <span>{{ t('home.selectMode') }}</span>
+          </button>
 
           <!-- 删除按钮（选中后） -->
           <div class="relative group" v-if="selectedIds.size > 0 && !confirmShow">
