@@ -4,7 +4,7 @@ FastAPI 主入口
 import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from .core.database import Base, engine
+from .core.database import Base, engine, SessionLocal
 from .routers import birthday
 
 # 配置日志
@@ -16,6 +16,28 @@ logger = logging.getLogger(__name__)
 
 # 创建数据库表
 Base.metadata.create_all(bind=engine)
+
+
+def _migrate_gender_column():
+    """如果 birthdays 表没有 gender 列则自动添加。"""
+    from sqlalchemy import text
+    db = SessionLocal()
+    try:
+        result = db.execute(text("PRAGMA table_info(birthdays)")).fetchall()
+        columns = [row[1] for row in result]
+        if "gender" not in columns:
+            db.execute(text("ALTER TABLE birthdays ADD COLUMN gender TEXT DEFAULT 'unspecified'"))
+            db.commit()
+            logger.info("Migrated: added gender column to birthdays table")
+        else:
+            logger.info("Database already has gender column")
+    except Exception as e:
+        logger.warning(f"Gender column migration skipped: {e}")
+    finally:
+        db.close()
+
+
+_migrate_gender_column()
 
 # 创建 FastAPI 应用
 app = FastAPI(
