@@ -64,7 +64,7 @@
       <div class="flex items-center gap-2 text-sm">
         <span class="text-gray-400">🎂</span>
         <span class="text-gray-600 dark:text-gray-300">
-          {{ birthday.is_lunar ? (lang === 'zh' ? '农历 ' : 'Lunar ') : (lang === 'zh' ? '公历 ' : 'Solar ') }}{{ birthday.is_lunar ? birthday.lunar_date : birthday.solar_date }}
+          {{ birthday.is_lunar ? (lang === 'zh' ? '农历 ' : 'Lunar ') : (lang === 'zh' ? '公历 ' : 'Solar ') }}{{ birthday.is_lunar ? birthday.lunar_date.replace('-leap','') : birthday.solar_date }}
         </span>
       </div>
       <div v-if="birthday.upcoming_date" class="flex items-center gap-2 text-sm">

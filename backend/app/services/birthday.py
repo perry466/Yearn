@@ -113,15 +113,15 @@ def get_upcoming_birthdays(db: Session, days: int = 30) -> List[dict]:
         days_left = days_until_birthday(b.solar_date, b.lunar_date, b.is_lunar, b.is_leap_month)
         if days_left is not None and 0 <= days_left <= days:
             upcoming_date = get_upcoming_birthday_date(b.solar_date, b.lunar_date, b.is_lunar, b.is_leap_month)
-            # 计算年龄
+            # 计算年龄：农历从 lunar_date 提取年份，公历从 solar_date
             try:
                 from datetime import date
-                birth = date.fromisoformat(b.solar_date)
                 today = date.today()
-                age = today.year - birth.year
-                if (today.month, today.day) < (birth.month, birth.day):
-                    age -= 1
-                age = max(age, 0)
+                if b.is_lunar and b.lunar_date:
+                    birth_year = int(b.lunar_date.split('-')[0])
+                else:
+                    birth_year = date.fromisoformat(b.solar_date).year
+                age = max(today.year - birth_year, 0)
             except Exception:
                 age = None
             upcoming.append({

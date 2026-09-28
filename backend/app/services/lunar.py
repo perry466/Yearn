@@ -23,8 +23,10 @@ def solar_to_lunar(solar_date: str) -> str:
 
 def lunar_to_solar_this_year(lunar_date_str: str, year: Optional[int] = None, is_leap: bool = False) -> Optional[date]:
     """
-    将农历日期转换为本年度对应的公历日期
+    将农历日期转换为对应公历日期。
     输入: "2000-06-14" (农历 YYYY-MM-DD), is_leap=True 表示闰月
+    - 如果传了 year 参数：转换为该公历年的对应日期（用于显示今年生日）
+    - 如果 year=None：转换为农历同年的公历日期（用于存储原始出生公历）
     返回: date 对象或 None
     """
     try:
@@ -34,7 +36,7 @@ def lunar_to_solar_this_year(lunar_date_str: str, year: Optional[int] = None, is
         lunar_day = int(parts[2])
 
         # 用指定年份的农历月份来计算公历日期
-        target_year = year or datetime.now().year
+        target_year = year if year is not None else lunar_year
 
         try:
             lunar = LunarDate(target_year, lunar_month, lunar_day, is_leap)

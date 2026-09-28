@@ -68,7 +68,7 @@
 
           <td class="px-4 py-3">
             <span class="text-sm text-gray-600 dark:text-gray-300">
-              {{ b.is_lunar ? (lang === 'zh' ? '农历' : 'Lunar') : (lang === 'zh' ? '公历' : 'Solar') }} {{ b.is_lunar ? b.lunar_date : b.solar_date }}
+              {{ b.is_lunar ? (lang === 'zh' ? '农历' : 'Lunar') : (lang === 'zh' ? '公历' : 'Solar') }} {{ b.is_lunar ? b.lunar_date.replace('-leap','') : b.solar_date }}
             </span>
           </td>
 

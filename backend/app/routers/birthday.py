@@ -11,14 +11,28 @@ from ..services import birthday as birthday_service
 
 
 def _calc_age(solar_date: str, lunar_date: str, is_lunar: bool, is_leap_month: bool) -> Optional[int]:
-    """根据公历生日字段计算周岁（solar_date 已是准确的出生公历日期）。"""
+    """
+    计算周岁。
+    - 农历记录：lunar_date 存的是原始出生农历日期（形如 1995-08-15 或 1995-08-15-leap），
+      提取其年份作为出生年。
+    - 公历记录：solar_date 存的是原始出生公历日期。
+    注意：农历记录的 solar_date 字段在 service 层被改写为「今年对应的公历日期」，
+    因此不能直接用 solar_date 算年龄。
+    """
     try:
-        birth_date = date.fromisoformat(solar_date)
         today = date.today()
-        age = today.year - birth_date.year
-        if (today.month, today.day) < (birth_date.month, birth_date.day):
-            age -= 1
-        return age if age >= 0 else 0
+        if is_lunar and lunar_date:
+            # lunar_date 格式：1995-08-15 或 1995-08-15-leap
+            year_str = lunar_date.split('-')[0]
+            birth_year = int(year_str)
+        else:
+            birth_date = date.fromisoformat(solar_date)
+            birth_year = birth_date.year
+
+        age = today.year - birth_year
+        if age < 0:
+            return 0
+        return age
     except Exception:
         return None
 

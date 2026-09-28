@@ -26,6 +26,8 @@ given_names = ['伟', '芳', '娜', '秀', '敏', '静', '丽', '强', '磊', '�
 
 categories = ['朋友', '家人', '同事', '客户', '同学', '其他']
 remarks = ['送礼物', '请吃饭', '发红包', '打电话问候', '寄快递', '']
+genders = ['male', 'female', 'unspecified']
+gender_weights = [0.45, 0.45, 0.10]  # 男女各45%，未知10%
 
 db = SessionLocal()
 
@@ -72,6 +74,7 @@ for i in range(to_add):
         category=category,
         remark=remark,
         is_enabled=random.random() < 0.9,
+        gender=random.choices(genders, weights=gender_weights)[0],
     )
     db.add(birthday)
     added += 1

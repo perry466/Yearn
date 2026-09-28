@@ -354,6 +354,9 @@ const isDateValid = computed(() => {
     return lunarPick.value.year <= currentYear
   }
   if (!form.value.solar_date) return true
+  // 截取年份，确保不能选当前年及以后
+  const pickedYear = parseInt(form.value.solar_date.split('-')[0])
+  if (pickedYear >= currentYear) return false
   return form.value.solar_date <= todayStr
 })
 
@@ -391,12 +394,16 @@ watch(() => props.show, (val) => {
         gender:     props.birthday.gender     || 'unspecified',
       }
       if (props.birthday.is_lunar && props.birthday.lunar_date) {
-        const parts = props.birthday.lunar_date.split('-')
+        // lunar_date 格式：YYYY-MM-DD 或 YYYY-MM-DD-leap
+        const raw = props.birthday.lunar_date
+        const isLeap = raw.endsWith('-leap')
+        const clean = isLeap ? raw.slice(0, -5) : raw  // 去掉 -leap 后缀
+        const parts = clean.split('-')
         lunarPick.value = {
           year:   parseInt(parts[0]) || 2000,
           month:  parseInt(parts[1]) || 1,
           day:    parseInt(parts[2]) || 1,
-          is_leap: parts[3] === '1' || parts[3] === 'leap',
+          is_leap: isLeap,
         }
       }
     } else {
