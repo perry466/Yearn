@@ -32,6 +32,9 @@ desktop.ini
 *.swp
 *.swo
 
+# Dev context (local only, not for GitHub)
+dev-context/
+
 # Env / secrets
 .env
 .env.local
