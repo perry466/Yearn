@@ -4,10 +4,10 @@
       <div v-if="show" class="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="$emit('close')" />
 
-        <div class="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md z-10 max-h-[90vh] overflow-y-auto">
+        <div class="relative flex flex-col bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md z-10 max-h-[90vh]">
 
-          <!-- Header -->
-          <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-700">
+          <!-- Header — 固定在顶部 -->
+          <div class="flex-shrink-0 flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-700 rounded-t-2xl">
             <div class="flex items-center gap-2">
               <span class="text-xl">🎂</span>
               <h2 class="text-lg font-bold text-gray-800 dark:text-white">
@@ -22,7 +22,11 @@
             </button>
           </div>
 
-          <form @submit.prevent="handleSubmit" class="p-6 space-y-5">
+          <!-- 表单主体 — 可滚动 -->
+          <form
+            @submit.prevent="handleSubmit"
+            class="flex-1 overflow-y-auto px-6 py-5 space-y-4 scroll-smooth"
+          >
 
             <!-- 姓名 -->
             <div>
@@ -220,8 +224,11 @@
               </button>
             </div>
 
-            <!-- 提交 -->
-            <div class="flex gap-3 pt-1">
+                      </form>
+
+          <!-- 底部固定操作栏 — 始终可见 -->
+          <div class="flex-shrink-0 border-t border-gray-100 dark:border-gray-700 px-6 py-4 bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm rounded-b-2xl">
+            <div class="flex gap-3">
               <button
                 type="button"
                 @click="$emit('close')"
@@ -230,14 +237,15 @@
                 {{ t('common.cancel') }}
               </button>
               <button
-                type="submit"
+                type="button"
+                @click="handleSubmit"
                 :disabled="loading || !form.name.trim() || !isDateValid"
                 class="flex-1 px-4 py-3 rounded-xl bg-primary-500 hover:bg-primary-600 active:bg-primary-700 text-white font-semibold text-sm transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {{ loading ? (lang === 'zh' ? '保存中…' : 'Saving…') : t('common.save') }}
               </button>
             </div>
-          </form>
+          </div>
         </div>
       </div>
     </transition>
