@@ -280,6 +280,7 @@
                 type="number"
                 :min="1"
                 :max="totalPages"
+                step="1"
                 placeholder="#"
                 class="w-12 h-8 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-xs text-center text-gray-800 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
               />
@@ -380,7 +381,10 @@ function nextPage() {
 
 function performJump() {
   if (!jumpTo.value) return
-  goToPage(Number(jumpTo.value))
+  const n = Number(jumpTo.value)
+  // 必须为正整数，小数/非数字/0/负数一律跳过
+  if (!Number.isInteger(n) || n < 1) return
+  goToPage(n)
 }
 
 watch(viewMode, (mode) => {

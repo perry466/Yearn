@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional
 from datetime import datetime
 
@@ -15,6 +15,24 @@ class BirthdayBase(BaseModel):
     remark: str = Field("", max_length=500, description="备注")
     is_enabled: bool = Field(True, description="提醒是否启用")
     gender: str = Field("unspecified", description="性别：male/female/unspecified")
+
+    @field_validator('gender', mode='before')
+    @classmethod
+    def validate_gender(cls, v):
+        if isinstance(v, str):
+            v = v.strip()
+        if v not in ("male", "female", "unspecified"):
+            raise ValueError('gender must be male, female or unspecified')
+        return v
+
+    @field_validator('category', mode='before')
+    @classmethod
+    def validate_category(cls, v):
+        if isinstance(v, str):
+            v = v.strip()
+        if v not in ("家人", "朋友", "同事", "同学", "客户", "other"):
+            raise ValueError('category must be one of the allowed values')
+        return v
 
 
 # ========== 创建 Schema ==========
@@ -35,6 +53,28 @@ class BirthdayUpdate(BaseModel):
     remark: Optional[str] = Field(None, max_length=500)
     is_enabled: Optional[bool] = None
     gender: Optional[str] = None
+
+    @field_validator('gender', mode='before')
+    @classmethod
+    def validate_gender(cls, v):
+        if v is None:
+            return v
+        if isinstance(v, str):
+            v = v.strip()
+        if v not in ("male", "female", "unspecified"):
+            raise ValueError('gender must be male, female or unspecified')
+        return v
+
+    @field_validator('category', mode='before')
+    @classmethod
+    def validate_category(cls, v):
+        if v is None:
+            return v
+        if isinstance(v, str):
+            v = v.strip()
+        if v not in ("家人", "朋友", "同事", "同学", "客户", "other"):
+            raise ValueError('category must be one of the allowed values')
+        return v
 
 
 # ========== 响应 Schema ==========
