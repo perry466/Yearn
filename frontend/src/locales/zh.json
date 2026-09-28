@@ -62,6 +62,12 @@
     "category": "分类",
     "remark": "备注",
     "remarkPlaceholder": "备注信息（可选）",
+    "gender": "性别",
+    "genders": {
+      "male": "男",
+      "female": "女",
+      "unspecified": "未知"
+    },
     "enabled": "启用提醒",
     "categories": {
       "family": "家人",

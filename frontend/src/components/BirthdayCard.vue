@@ -38,17 +38,24 @@
       </span>
     </div>
 
-    <!-- 头像/名字首字 -->
+    <!-- 头像 + 姓名 + 年龄性别 -->
     <div class="flex items-center gap-3 mb-3">
+      <!-- 性别头像 -->
       <div
-        class="w-12 h-12 rounded-full flex items-center justify-center text-xl font-bold text-white"
-        :style="{ background: avatarGradient }"
+        class="w-12 h-12 rounded-full flex items-center justify-center text-2xl flex-shrink-0"
+        :class="avatarBgClass"
       >
-        {{ birthday.name.charAt(0).toUpperCase() }}
+        {{ avatarEmoji }}
       </div>
       <div class="flex-1 min-w-0" :class="selectMode ? 'pr-6' : ''">
         <h3 class="font-bold text-gray-800 dark:text-white truncate">{{ birthday.name }}</h3>
-        <p class="text-xs text-gray-400">{{ birthday.category ? t('form.categories.' + categoryKey(birthday.category)) : '' }}</p>
+        <p class="text-xs text-gray-400">
+          <span v-if="birthday.age !== null && birthday.age !== undefined">
+            {{ birthday.age }}{{ lang === 'zh' ? '岁' : ' yrs' }}
+            <span class="ml-1">{{ ageGenderSymbol }}</span>
+          </span>
+          <span v-else>{{ birthday.category ? t('form.categories.' + categoryKey(birthday.category)) : '' }}</span>
+        </p>
       </div>
     </div>
 
@@ -107,6 +114,7 @@ const categoryMap = { '朋友': 'friend', '家人': 'family', '同事': 'colleag
 function categoryKey(cat) {
   return categoryMap[cat] || cat
 }
+
 const props = defineProps({
   birthday: { type: Object, required: true },
   selectMode: { type: Boolean, default: false },
@@ -115,19 +123,23 @@ const props = defineProps({
 
 defineEmits(['edit', 'delete', 'toggle-select'])
 
-const gradients = [
-  'linear-gradient(135deg, #FF6B6B, #FFA07A)',
-  'linear-gradient(135deg, #4ECDC4, #45B7D1)',
-  'linear-gradient(135deg, #96CEB4, #88D8B0)',
-  'linear-gradient(135deg, #DDA0DD, #DA70D6)',
-  'linear-gradient(135deg, #87CEEB, #6495ED)',
-  'linear-gradient(135deg, #F0E68C, #FFD700)',
-  'linear-gradient(135deg, #FFB6C1, #FF69B4)',
-  'linear-gradient(135deg, #98D8C8, #7FDBDA)',
-]
+const GENDER_CONFIG = {
+  male:       { emoji: '👦', bg: 'bg-blue-100 dark:bg-blue-900/40' },
+  female:     { emoji: '👧', bg: 'bg-pink-100 dark:bg-pink-900/40' },
+  unspecified:{ emoji: '😊', bg: 'bg-gray-100 dark:bg-gray-700' },
+}
 
-const avatarGradient = computed(() => {
-  const charCode = props.birthday.name.charCodeAt(0)
-  return gradients[charCode % gradients.length]
+const avatarConfig = computed(() => {
+  return GENDER_CONFIG[props.birthday.gender] || GENDER_CONFIG.unspecified
+})
+
+const avatarEmoji = computed(() => avatarConfig.value.emoji)
+const avatarBgClass = computed(() => avatarConfig.value.bg)
+
+const ageGenderSymbol = computed(() => {
+  const g = props.birthday.gender
+  if (g === 'male') return '♂'
+  if (g === 'female') return '♀'
+  return ''
 })
 </script>

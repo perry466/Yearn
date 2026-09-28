@@ -191,6 +191,28 @@
               </div>
             </div>
 
+            <!-- 性别 -->
+            <div>
+              <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+                {{ t('form.gender') }}
+              </label>
+              <div class="grid grid-cols-3 gap-2">
+                <button
+                  v-for="g in genderOptions"
+                  :key="g.key"
+                  type="button"
+                  @click="form.gender = g.key"
+                  class="flex flex-col items-center gap-1 px-3 py-2.5 rounded-xl border text-xs font-medium transition-all"
+                  :class="form.gender === g.key
+                    ? 'border-primary-400 bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-300 ring-1 ring-primary-400'
+                    : 'border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:border-primary-300 dark:hover:border-primary-600 hover:bg-primary-50/50 dark:hover:bg-primary-900/20'"
+                >
+                  <span class="text-xl leading-none">{{ g.emoji }}</span>
+                  <span>{{ t('form.genders.' + g.key) }}</span>
+                </button>
+              </div>
+            </div>
+
             <!-- 备注 -->
             <div>
               <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
@@ -299,7 +321,14 @@ const defaultForm = {
   category: 'friend',
   remark: '',
   is_enabled: true,
+  gender: 'unspecified',
 }
+
+const genderOptions = [
+  { key: 'male',       emoji: '♂' },
+  { key: 'female',     emoji: '♀' },
+  { key: 'unspecified', emoji: '?' },
+]
 
 const form = ref({ ...defaultForm })
 const loading = ref(false)
@@ -359,6 +388,7 @@ watch(() => props.show, (val) => {
         category:   props.birthday.category   || 'friend',
         remark:     props.birthday.remark     || '',
         is_enabled: props.birthday.is_enabled !== false,
+        gender:     props.birthday.gender     || 'unspecified',
       }
       if (props.birthday.is_lunar && props.birthday.lunar_date) {
         const parts = props.birthday.lunar_date.split('-')

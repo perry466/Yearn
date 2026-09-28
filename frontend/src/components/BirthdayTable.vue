@@ -42,13 +42,21 @@
 
           <td class="px-4 py-3" :class="selectMode ? 'pl-2' : ''">
             <div class="flex items-center gap-3">
+              <!-- 性别头像 -->
               <div
-                class="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0"
-                :style="{ background: getGradient(b.name) }"
+                class="w-9 h-9 rounded-full flex items-center justify-center text-lg flex-shrink-0"
+                :class="getAvatarBg(b.gender)"
               >
-                {{ b.name.charAt(0).toUpperCase() }}
+                {{ getAvatarEmoji(b.gender) }}
               </div>
-              <span class="font-medium text-gray-800 dark:text-white">{{ b.name }}</span>
+              <div>
+                <span class="font-medium text-gray-800 dark:text-white">{{ b.name }}</span>
+                <span v-if="b.age !== null && b.age !== undefined" class="ml-2 text-xs text-gray-400">
+                  {{ b.age }}{{ lang === 'zh' ? '岁' : 'y' }}
+                  <span v-if="b.gender === 'male'" class="text-blue-400">♂</span>
+                  <span v-else-if="b.gender === 'female'" class="text-pink-400">♀</span>
+                </span>
+              </div>
             </div>
           </td>
 
@@ -137,19 +145,16 @@ const isIndeterminate = computed(() =>
   !isAllSelected.value && props.birthdays.some(b => props.selectedIds.has(b.id))
 )
 
-const gradients = [
-  'linear-gradient(135deg, #FF6B6B, #FFA07A)',
-  'linear-gradient(135deg, #4ECDC4, #45B7D1)',
-  'linear-gradient(135deg, #96CEB4, #88D8B0)',
-  'linear-gradient(135deg, #DDA0DD, #DA70D6)',
-  'linear-gradient(135deg, #87CEEB, #6495ED)',
-  'linear-gradient(135deg, #F0E68C, #FFD700)',
-  'linear-gradient(135deg, #FFB6C1, #FF69B4)',
-  'linear-gradient(135deg, #98D8C8, #7FDBDA)',
-]
+function getAvatarBg(gender) {
+  if (gender === 'male') return 'bg-blue-100 dark:bg-blue-900/40'
+  if (gender === 'female') return 'bg-pink-100 dark:bg-pink-900/40'
+  return 'bg-gray-100 dark:bg-gray-700'
+}
 
-function getGradient(name) {
-  return gradients[name.charCodeAt(0) % gradients.length]
+function getAvatarEmoji(gender) {
+  if (gender === 'male') return '👦'
+  if (gender === 'female') return '👧'
+  return '😊'
 }
 
 function getDaysClass(days) {

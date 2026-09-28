@@ -14,6 +14,7 @@ class BirthdayBase(BaseModel):
     category: str = Field("朋友", max_length=50, description="分类")
     remark: str = Field("", max_length=500, description="备注")
     is_enabled: bool = Field(True, description="提醒是否启用")
+    gender: str = Field("unspecified", description="性别：male/female/unspecified")
 
 
 # ========== 创建 Schema ==========
@@ -33,6 +34,7 @@ class BirthdayUpdate(BaseModel):
     category: Optional[str] = Field(None, max_length=50)
     remark: Optional[str] = Field(None, max_length=500)
     is_enabled: Optional[bool] = None
+    gender: Optional[str] = None
 
 
 # ========== 响应 Schema ==========
@@ -43,6 +45,8 @@ class BirthdayResponse(BirthdayBase):
     upcoming_date: Optional[str] = None
     # 距离生日天数（None 表示今年已过）
     days_until: Optional[int] = None
+    # 周岁（自动计算）
+    age: Optional[int] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 

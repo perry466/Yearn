@@ -39,6 +39,7 @@ def create_birthday(db: Session, birthday_data: BirthdayCreate) -> Birthday:
         category=data.get("category", "朋友"),
         remark=data.get("remark", "").strip(),
         is_enabled=data.get("is_enabled", True),
+        gender=data.get("gender", "unspecified"),
     )
 
     db.add(birthday)
@@ -103,7 +104,7 @@ def get_all_birthdays(db: Session) -> List[Birthday]:
 def get_upcoming_birthdays(db: Session, days: int = 30) -> List[dict]:
     """
     获取即将到来的生日（未来N天内）
-    返回带有 upcoming_date 和 days_until 的列表
+    返回带有 upcoming_date / days_until / gender / age 的列表
     """
     all_birthdays = db.query(Birthday).filter(Birthday.is_enabled == True).all()
     upcoming = []
@@ -112,6 +113,17 @@ def get_upcoming_birthdays(db: Session, days: int = 30) -> List[dict]:
         days_left = days_until_birthday(b.solar_date, b.lunar_date, b.is_lunar, b.is_leap_month)
         if days_left is not None and 0 <= days_left <= days:
             upcoming_date = get_upcoming_birthday_date(b.solar_date, b.lunar_date, b.is_lunar, b.is_leap_month)
+            # 计算年龄
+            try:
+                from datetime import date
+                birth = date.fromisoformat(b.solar_date)
+                today = date.today()
+                age = today.year - birth.year
+                if (today.month, today.day) < (birth.month, birth.day):
+                    age -= 1
+                age = max(age, 0)
+            except Exception:
+                age = None
             upcoming.append({
                 "id": b.id,
                 "name": b.name,
@@ -122,8 +134,10 @@ def get_upcoming_birthdays(db: Session, days: int = 30) -> List[dict]:
                 "category": b.category,
                 "remark": b.remark,
                 "is_enabled": b.is_enabled,
+                "gender": getattr(b, 'gender', 'unspecified'),
                 "upcoming_date": upcoming_date.isoformat() if upcoming_date else None,
                 "days_until": days_left,
+                "age": age,
                 "created_at": b.created_at,
                 "updated_at": b.updated_at,
             })

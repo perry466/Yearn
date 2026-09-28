@@ -19,6 +19,7 @@ class Birthday(Base):
     category = Column(String(50), default="朋友", comment="分类：朋友/家人/同事/客户/其他")
     remark = Column(String(500), default="", comment="备注")
     is_enabled = Column(Boolean, default=True, comment="提醒是否启用")
+    gender = Column(String(20), default="unspecified", comment="性别：male/female/unspecified")
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
