@@ -110,9 +110,8 @@ import { useI18n } from '../composables/useI18n'
 
 const { t, tf, lang } = useI18n()
 
-const categoryMap = { '朋友': 'friend', '家人': 'family', '同事': 'colleague', '客户': 'client', '同学': 'classmate', '其他': 'other' }
 function categoryKey(cat) {
-  return categoryMap[cat] || cat
+  return cat
 }
 
 const props = defineProps({

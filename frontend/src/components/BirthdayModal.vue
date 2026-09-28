@@ -292,12 +292,12 @@ const todayStr = today.toISOString().split('T')[0]
 const currentYear = today.getFullYear()
 
 const categoryOptions = [
-  { key: 'family',    emoji: '👨‍👩‍👧' },
-  { key: 'friend',    emoji: '🤝' },
-  { key: 'colleague', emoji: '💼' },
-  { key: 'classmate', emoji: '🎒' },
-  { key: 'client',    emoji: '🤵' },
-  { key: 'other',     emoji: '🌟' },
+  { key: '家人', emoji: '👨‍👩‍👧' },
+  { key: '朋友', emoji: '🤝' },
+  { key: '同事', emoji: '💼' },
+  { key: '同学', emoji: '🎒' },
+  { key: '客户', emoji: '🤵' },
+  { key: 'other', emoji: '🌟' },
 ]
 
 const lunarMonthNames = ['正月','二月','三月','四月','五月','六月','七月','八月','九月','十月','冬月','腊月']
@@ -318,7 +318,7 @@ const defaultForm = {
   solar_date: '',
   lunar_date: '',
   is_lunar: false,
-  category: 'friend',
+  category: '朋友',
   remark: '',
   is_enabled: true,
   gender: 'unspecified',
@@ -388,7 +388,7 @@ watch(() => props.show, (val) => {
         solar_date: props.birthday.solar_date || '',
         lunar_date: props.birthday.lunar_date || '',
         is_lunar:   props.birthday.is_lunar   || false,
-        category:   props.birthday.category   || 'friend',
+        category:   props.birthday.category   || '朋友',
         remark:     props.birthday.remark     || '',
         is_enabled: props.birthday.is_enabled !== false,
         gender:     props.birthday.gender     || 'unspecified',

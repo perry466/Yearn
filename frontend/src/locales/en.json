@@ -70,11 +70,11 @@
     },
     "enabled": "Enable reminder",
     "categories": {
-      "family": "Family",
-      "friend": "Friend",
-      "colleague": "Colleague",
-      "classmate": "Classmate",
-      "client": "Client",
+      "家人": "Family",
+      "朋友": "Friend",
+      "同事": "Colleague",
+      "同学": "Classmate",
+      "客户": "Client",
       "other": "Other"
     }
   },

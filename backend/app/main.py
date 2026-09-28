@@ -37,7 +37,34 @@ def _migrate_gender_column():
         db.close()
 
 
+def _migrate_categories():
+    """迁移英文/旧中文分类为统一值（配合 schema 白名单）。"""
+    from sqlalchemy import text
+    # key=旧值, value=目标值（与 schema 白名单一致）
+    MAPPING = {
+        "friend": "朋友",
+        "family": "家人",
+        "colleague": "同事",
+        "classmate": "同学",
+        "client": "客户",
+        "其他": "other",      # 旧中文"其他" → 英文"other"
+    }
+    db = SessionLocal()
+    try:
+        for old_val, new_val in MAPPING.items():
+            db.execute(text(
+                "UPDATE birthdays SET category=:new_val WHERE category=:old_val"
+            ), {"old_val": old_val, "new_val": new_val})
+        db.commit()
+        logger.info(f"Category migration done: {len(MAPPING)} keys processed")
+    except Exception as e:
+        logger.warning(f"Category migration skipped: {e}")
+    finally:
+        db.close()
+
+
 _migrate_gender_column()
+_migrate_categories()
 
 # 创建 FastAPI 应用
 app = FastAPI(

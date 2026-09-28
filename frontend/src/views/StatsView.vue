@@ -115,9 +115,8 @@ const upcoming = ref([])
 const upcoming7 = computed(() => upcoming.value.filter(b => b.days_until <= 7).length)
 const upcomingToday = computed(() => upcoming.value.filter(b => b.days_until === 0).length)
 
-const categoryMap = { '朋友': 'friend', '家人': 'family', '同事': 'colleague', '客户': 'client', '同学': 'classmate', '其他': 'other' }
 function categoryKey(cat) {
-  return categoryMap[cat] || cat
+  return cat
 }
 
 const categoryColors = {
@@ -126,7 +125,7 @@ const categoryColors = {
   '同事': '#96CEB4',
   '客户': '#DDA0DD',
   '同学': '#87CEEB',
-  '其他': '#F0E68C',
+  'other': '#F0E68C',
 }
 
 function getCategoryColor(cat) {
