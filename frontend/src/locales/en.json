@@ -1,0 +1,92 @@
+{
+  "app": {
+    "title": "Yearn",
+    "subtitle": "Remember every birthday that matters"
+  },
+  "nav": {
+    "home": "Home",
+    "calendar": "Calendar",
+    "stats": "Stats"
+  },
+  "common": {
+    "add": "Add",
+    "edit": "Edit",
+    "delete": "Delete",
+    "save": "Save",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "search": "Search",
+    "all": "All",
+    "total": "Total",
+    "page": "Page",
+    "of": "/",
+    "jump": "Go",
+    "prev": "Prev",
+    "next": "Next",
+    "items": "items",
+    "records": "records",
+    "noData": "No data",
+    "loading": "Loading..."
+  },
+  "home": {
+    "upcoming": "Upcoming",
+    "selectMode": "Select",
+    "batchDelete": "Batch Delete",
+    "deleteSelected": "Delete Selected",
+    "selected": "selected",
+    "selectAll": "Select All",
+    "deselectAll": "Deselect All",
+    "deleteConfirmTitle": "Delete {count} selected records?",
+    "deleteConfirmOne": "Delete \"{name}\"?",
+    "deleteWarning": "This cannot be undone",
+    "perPage": "Per page",
+    "listView": "List",
+    "cardView": "Card",
+    "daysUntil": "{days} days left",
+    "today": "Today"
+  },
+  "form": {
+    "addTitle": "Add Birthday",
+    "editTitle": "Edit Birthday",
+    "name": "Name",
+    "namePlaceholder": "Enter name",
+    "dateType": "Date Type",
+    "solar": "Solar",
+    "lunar": "Lunar",
+    "solarDate": "Solar Date",
+    "lunarYear": "Lunar Year",
+    "lunarMonth": "Lunar Month",
+    "lunarDay": "Lunar Day",
+    "isLeapMonth": "Leap Month",
+    "category": "Category",
+    "remark": "Remark",
+    "remarkPlaceholder": "Notes (optional)",
+    "enabled": "Enable reminder",
+    "categories": {
+      "family": "Family",
+      "friend": "Friend",
+      "colleague": "Colleague",
+      "classmate": "Classmate",
+      "client": "Client",
+      "other": "Other"
+    }
+  },
+  "calendar": {
+    "title": "Birthday Calendar",
+    "sun": "Sun",
+    "mon": "Mon",
+    "tue": "Tue",
+    "wed": "Wed",
+    "thu": "Thu",
+    "fri": "Fri",
+    "sat": "Sat",
+    "noBirthday": "No birthdays this month"
+  },
+  "stats": {
+    "title": "Statistics",
+    "total": "Total",
+    "upcoming30": "Next 30 days",
+    "byCategory": "By Category",
+    "byMonth": "By Month"
+  }
+}
