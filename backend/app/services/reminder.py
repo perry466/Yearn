@@ -72,25 +72,27 @@ def send_serverchan_reminder(birthday_name: str, birthday_date: str, days_left: 
         # Server酱 官方接口（新版 sctapi）
         url = f"https://sctapi.ftqq.com/{SERVERCHAN_CONFIG['sckey']}.send"
 
-        # 计算 emoji
-        cake = "🎂"
-        if days_left == 30:
-            cake = "🔔"
-        elif days_left == 15:
-            cake = "⏰"
-        elif days_left == 7:
-            cake = "🎉"
+        # 根据剩余天数匹配 emoji 和提示文案
+        if days_left == 0:
+            cake, title, tip = "🎂🎉", f"🎉 今天是 {birthday_name} 的生日！", "快送祝福，别错过！"
         elif days_left == 1:
-            cake = "⚠️"
+            cake, title, tip = "⏰", f"⏰ 明天是 {birthday_name} 的生日", "该准备礼物了！"
+        elif days_left == 7:
+            cake, title, tip = "🎉", f"🎉 {birthday_name} 的生日还有 7 天", "提前规划，别临时抱佛脚！"
+        elif days_left == 15:
+            cake, title, tip = "📅", f"📅 {birthday_name} 的生日还有 15 天", "mark 一下，提前准备！"
+        elif days_left == 30:
+            cake, title, tip = "🔔", f"🔔 {birthday_name} 的生日还有 30 天", "早做打算，从容准备！"
+        else:
+            cake, title, tip = "🎂", f"🎂 {birthday_name} 的生日还有 {days_left} 天", "别忘了提前安排！"
 
-        title = f"{birthday_name} 的生日还有 {days_left} 天"
         desp = f"""{cake} **生日提醒**
 
 **{birthday_name}** 的生日还有 **{days_left} 天**！
 
 📅 生日日期：{birthday_date}
 
-💡 别忘了准备礼物哦！
+💡 {tip}
 """
 
         data = {
