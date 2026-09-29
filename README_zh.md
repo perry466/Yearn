@@ -1,15 +1,35 @@
-# Yearn · 岁岁念 — 使用与部署说明
+<div align="center">
 
-> **Yearn** /jɜːn/ — v. to long for, to miss deeply
-> **岁岁念** — 年年岁岁，惦念不忘
->
-> 一个带农历支持、温暖现代的生日提醒应用（FastAPI + Vue 3）。
+# 🎂 Yearn · 岁岁念
+### 年年岁岁，惦念不忘
 
-本文档以 **Linux / Ubuntu 局域网服务器部署** 为主线，Windows 仅作差异提示。
+> 带农历支持、温暖现代的生日提醒应用 · FastAPI + Vue 3
+
+[![English](https://img.shields.io/badge/English-Read_in_English-4a90d9?style=for-the-badge)](./README.md)
+![License: MIT](https://img.shields.io/badge/License-MIT-ff6b9d?style=for-the-badge)
+
+</div>
 
 ---
 
-## 一、环境要求
+> 📘 **本文档为中文。** 想看英文？→ **[Read in English →](./README.md)**
+
+## 📑 目录
+
+- [📋 一、环境要求](#一、环境要求)
+- [📁 二、项目结构](#二、项目结构)
+- [🚀 三、快速启动](#三、快速启动)
+- [🌐 四、局域网/服务器访问说明](#四、局域网服务器访问说明)
+- [🏭 五、生产部署建议](#五、生产部署建议)
+- [🔔 六、提醒系统](#六、提醒系统)
+- [💾 七、数据模型](#七、数据模型)
+- [🔌 八、接口一览](#八、接口一览)
+- [❓ 九、常见问题](#九、常见问题)
+- [🔧 十、开发指引（简）](#十、开发指引（简）)
+
+---
+
+## 📋 一、环境要求
 
 | 依赖 | 版本 | 说明 |
 | --- | --- | --- |
@@ -20,7 +40,7 @@
 
 ---
 
-## 二、项目结构
+## 📁 二、项目结构
 
 ```
 yearn/
@@ -46,7 +66,7 @@ yearn/
 
 ---
 
-## 三、快速启动（开发 / 局域网直接用）
+## 🚀 三、快速启动
 
 > 默认约定：后端跑在 `0.0.0.0:8000`，前端 dev server 跑在 `0.0.0.0:5173`，
 > 前端通过 `/api` 代理把请求转发到本机 `localhost:8000`。
@@ -106,7 +126,7 @@ python reset_100.py        # 清空并生成 100 条随机记录
 
 ---
 
-## 四、局域网 / 服务器访问说明
+## 🌐 四、局域网/服务器访问说明
 
 前端 `vite.config.js` 已经做了两件事，保证局域网可访问：
 
@@ -125,7 +145,7 @@ server: {
 
 ---
 
-## 五、生产部署建议（build + Nginx）
+## 🏭 五、生产部署建议
 
 `npm run dev` 是开发服务器，不适合长期对外。建议构建静态文件并用 Nginx 反代后端：
 
@@ -169,7 +189,7 @@ uvicorn app.main:app --host 127.0.0.1 --port 8000
 
 ---
 
-## 六、提醒系统
+## 🔔 六、提醒系统
 
 - **调度**：每天 09:00（Asia/Shanghai）
 - **提前天数**：30、15、7、1 天
@@ -207,7 +227,7 @@ python -m app.scheduler
 
 ---
 
-## 七、数据模型（birthdays 表）
+## 💾 七、数据模型
 
 | 字段 | 类型 | 说明 |
 | --- | --- | --- |
@@ -226,7 +246,7 @@ python -m app.scheduler
 
 ---
 
-## 八、接口一览
+## 🔌 八、接口一览
 
 | 方法 | 路径 | 说明 |
 | --- | --- | --- |
@@ -243,7 +263,7 @@ python -m app.scheduler
 
 ---
 
-## 九、常见问题
+## ❓ 九、常见问题
 
 **Q1：浏览器提示 “Blocked request. This host is not allowed”**
 A：Vite 拦截了非白名单主机。已在 `vite.config.js` 配好 `host: true` 与 `allowedHosts`。
@@ -278,7 +298,7 @@ A：依次检查：① `config.py` 里 `enabled=True`；② SMTP 授权码 / Ser
 
 ---
 
-## 十、开发指引（简）
+## 🔧 十、开发指引（简）
 
 - **加接口**：`services/birthday.py` 加方法 → `routers/birthday.py` 加路由 → 需要时在 `schemas/birthday.py` 加模型。
 - **加页面**：`src/views/` 建 `.vue` → `src/router/index.js` 加路由 → `App.vue` 加导航。

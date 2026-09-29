@@ -1,17 +1,35 @@
-# Yearn · 岁岁念 — Setup & Deployment Guide
+<div align="center">
 
-> **Yearn** /jɜːn/ — v. to long for, to miss deeply
-> **岁岁念** — 年年岁岁，惦念不忘
->
-> A warm, modern birthday reminder app with full lunar calendar support
-> (FastAPI + Vue 3).
+# 🎂 Yearn · 岁岁念
+### 岁岁念 — 年年岁岁，惦念不忘
 
-This guide is written for **Linux / Ubuntu LAN server deployment**, with Windows
-notes where they differ. The Chinese version is in [README_zh.md](./README_zh.md).
+> A warm, modern birthday reminder app with full lunar calendar support · FastAPI + Vue 3
+
+[![简体中文](https://img.shields.io/badge/简体中文-查看中文文档-ff6b9d?style=for-the-badge)](./README_zh.md)
+![License: MIT](https://img.shields.io/badge/License-MIT-4a90d9?style=for-the-badge)
+
+</div>
 
 ---
 
-## 1. Requirements
+> 📘 **This guide is in English.** Prefer 中文? → **[查看中文文档 →](./README_zh.md)**
+
+## 📑 Table of Contents
+
+- [📋 1. Requirements](#1-requirements)
+- [📁 2. Project Structure](#2-project-structure)
+- [🚀 3. Quick Start](#3-quick-start)
+- [🌐 4. LAN Server Access](#4-lan-server-access)
+- [🏭 5. Production Deployment](#5-production-deployment)
+- [🔔 6. Reminder System](#6-reminder-system)
+- [💾 7. Data Model](#7-data-model)
+- [🔌 8. API Reference](#8-api-reference)
+- [❓ 9. FAQ](#9-faq)
+- [🔧 10. Development](#10-development)
+
+---
+
+## 📋 1. Requirements
 
 | Dependency | Version | Notes |
 | --- | --- | --- |
@@ -22,7 +40,7 @@ notes where they differ. The Chinese version is in [README_zh.md](./README_zh.md
 
 ---
 
-## 2. Project Structure
+## 📁 2. Project Structure
 
 ```
 yearn/
@@ -48,7 +66,7 @@ yearn/
 
 ---
 
-## 3. Quick Start (dev / direct LAN use)
+## 🚀 3. Quick Start
 
 > Convention: backend on `0.0.0.0:8000`, frontend dev server on `0.0.0.0:5173`.
 > The frontend proxies `/api` to `localhost:8000` on the same machine.
@@ -108,7 +126,7 @@ python reset_100.py        # wipes and generates 100 random records
 
 ---
 
-## 4. LAN / Server Access
+## 🌐 4. LAN Server Access
 
 `frontend/vite.config.js` is already configured for LAN access:
 
@@ -127,7 +145,7 @@ server: {
 
 ---
 
-## 5. Production Deployment (build + Nginx)
+## 🏭 5. Production Deployment
 
 `npm run dev` is a dev server — not ideal to leave running. Build static files and
 reverse-proxy the backend with Nginx:
@@ -170,7 +188,7 @@ uvicorn app.main:app --host 127.0.0.1 --port 8000
 
 ---
 
-## 6. Reminder System
+## 🔔 6. Reminder System
 
 - **Schedule**: daily 09:00 (Asia/Shanghai)
 - **Lead times**: 30, 15, 7, 1 days ahead
@@ -208,7 +226,7 @@ python -m app.scheduler
 
 ---
 
-## 7. Data Model (`birthdays` table)
+## 💾 7. Data Model
 
 | Field | Type | Description |
 | --- | --- | --- |
@@ -228,7 +246,7 @@ python -m app.scheduler
 
 ---
 
-## 8. API Reference
+## 🔌 8. API Reference
 
 | Method | Path | Description |
 | --- | --- | --- |
@@ -245,7 +263,7 @@ List responses include real-time `upcoming_date` and `days_until`.
 
 ---
 
-## 9. FAQ
+## ❓ 9. FAQ
 
 **Q1: Browser says "Blocked request. This host is not allowed"**
 A: Vite blocked a non-allowlisted host. `vite.config.js` already sets `host: true`
@@ -283,7 +301,7 @@ SCKEY; ③ scheduler `python -m app.scheduler` is running; ④ the contact's
 
 ---
 
-## 10. Development (brief)
+## 🔧 10. Development
 
 - **Add an endpoint**: method in `services/birthday.py` → route in
   `routers/birthday.py` → schema in `schemas/birthday.py` if needed.
