@@ -26,7 +26,8 @@
     "items": "items",
     "records": "records",
     "noData": "No data",
-    "loading": "Loading..."
+    "loading": "Loading...",
+    "close": "Close"
   },
   "home": {
     "upcoming": "Upcoming",
@@ -93,7 +94,9 @@
     "title": "Statistics",
     "total": "Total",
     "upcoming30": "Next 30 days",
+    "thisWeek": "This week",
     "byCategory": "By Category",
-    "byMonth": "By Month"
+    "byMonth": "By Month",
+    "clickHint": "Click to view details"
   }
 }

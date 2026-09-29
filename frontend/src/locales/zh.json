@@ -26,7 +26,8 @@
     "items": "条",
     "records": "条记录",
     "noData": "暂无数据",
-    "loading": "加载中..."
+    "loading": "加载中...",
+    "close": "关闭"
   },
   "home": {
     "upcoming": "即将到来",
@@ -93,7 +94,9 @@
     "title": "统计概览",
     "total": "总计",
     "upcoming30": "30天内",
+    "thisWeek": "本周",
     "byCategory": "按分类",
-    "byMonth": "按月份"
+    "byMonth": "按月份",
+    "clickHint": "点击查看明细"
   }
 }
