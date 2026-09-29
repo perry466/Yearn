@@ -14,7 +14,32 @@
 
 > 📘 **本文档为中文。** 想看英文？→ **[Read in English →](./README.md)**
 
+## 📸 界面预览
+
+<table>
+  <tr>
+    <td align="center" width="33%">
+      <a href="./docs/screenshots/home_list.png"><img src="./docs/screenshots/home_list.png" alt="首页（列表）" width="100%"/></a>
+      <br/><b>🏠 首页</b> · 「即将到来」横向卡片 + 列表/卡片视图 + 分页
+    </td>
+    <td align="center" width="33%">
+      <a href="./docs/screenshots/calendar.png"><img src="./docs/screenshots/calendar.png" alt="日历" width="100%"/></a>
+      <br/><b>📅 日历</b> · 农历 + 公历，当日高亮
+    </td>
+    <td align="center" width="33%">
+      <a href="./docs/screenshots/stats.png"><img src="./docs/screenshots/stats.png" alt="统计" width="100%"/></a>
+      <br/><b>📊 统计</b> · 概览、按分类、分布饼图
+    </td>
+  </tr>
+</table>
+
+> 🔎 **小提示**：统计页任意「概览卡 / 分类条 / 饼图扇区」都可点击，弹出该维度下的明细记录。
+
+---
+
 ## 📑 目录
+
+> 📱 **第一次用？** 先看 **[使用指南（中文）](./docs/USAGE_zh.md)** · **[Usage Guide (English)](./docs/USAGE.md)** —— 带截图，逐页讲怎么用。
 
 - [📋 一、环境要求](#一、环境要求)
 - [📁 二、项目结构](#二、项目结构)

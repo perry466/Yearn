@@ -35,6 +35,10 @@ desktop.ini
 # Dev context (local only, not for GitHub)
 dev-context/
 
+# Edge headless screenshot artifacts (local debug only)
+docs/screenshots/.edge-*/
+docs/screenshots/*.err
+
 # Env / secrets
 .env
 .env.local

@@ -14,7 +14,32 @@
 
 > 📘 **This guide is in English.** Prefer 中文? → **[查看中文文档 →](./README_zh.md)**
 
+## 📸 Screenshots
+
+<table>
+  <tr>
+    <td align="center" width="33%">
+      <a href="./docs/screenshots/home_list.png"><img src="./docs/screenshots/home_list.png" alt="Home (List View)" width="100%"/></a>
+      <br/><b>🏠 Home</b> · upcoming strip + list/cards + pagination
+    </td>
+    <td align="center" width="33%">
+      <a href="./docs/screenshots/calendar.png"><img src="./docs/screenshots/calendar.png" alt="Calendar" width="100%"/></a>
+      <br/><b>📅 Calendar</b> · lunar + solar, today highlighted
+    </td>
+    <td align="center" width="33%">
+      <a href="./docs/screenshots/stats.png"><img src="./docs/screenshots/stats.png" alt="Stats" width="100%"/></a>
+      <br/><b>📊 Stats</b> · totals, by-category, distribution
+    </td>
+  </tr>
+</table>
+
+> 🔎 **Drill-down tip**: on the Stats page, click any overview card, bar, or pie slice to open the matching records in a modal.
+
+---
+
 ## 📑 Table of Contents
+
+> 📱 **New here?** Start with the **[Usage Guide (English)](./docs/USAGE.md)** · **[使用指南（中文）](./docs/USAGE_zh.md)** — screenshots + how to use every page.
 
 - [📋 1. Requirements](#1-requirements)
 - [📁 2. Project Structure](#2-project-structure)
