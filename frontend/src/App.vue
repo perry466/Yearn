@@ -68,6 +68,7 @@ const navItems = [
   { path: '/', labelKey: 'nav.home', icon: '🏠' },
   { path: '/calendar', labelKey: 'nav.calendar', icon: '📅' },
   { path: '/stats', labelKey: 'nav.stats', icon: '📊' },
+  { path: '/settings', labelKey: 'nav.settings', icon: '🔔' },
 ]
 
 // 初始化暗色模式

@@ -45,6 +45,11 @@ export function useApi() {
   // 删除
   const deleteBirthday = (id) => api.delete(`/birthdays/${id}`)
 
+  // 系统设置
+  const getSettings = () => api.get('/settings')
+  const updateSettings = (data) => api.put('/settings', data)
+  const testReminder = () => api.post('/settings/test')
+
   return {
     listBirthdays,
     listUpcoming,
@@ -54,5 +59,8 @@ export function useApi() {
     createBirthday,
     updateBirthday,
     deleteBirthday,
+    getSettings,
+    updateSettings,
+    testReminder,
   }
 }

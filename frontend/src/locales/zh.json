@@ -6,7 +6,8 @@
   "nav": {
     "home": "首页",
     "calendar": "日历",
-    "stats": "统计"
+    "stats": "统计",
+    "settings": "设置"
   },
   "common": {
     "add": "添加",
@@ -98,5 +99,38 @@
     "byCategory": "按分类",
     "byMonth": "按月份",
     "clickHint": "点击查看明细"
+  },
+  "settings": {
+    "title": "提醒设置",
+    "subtitle": "配置推送渠道、提醒频率与消息模板，网页改即存、无需重启",
+    "save": "保存设置",
+    "saved": "设置已保存 ✅",
+    "saveFailed": "保存失败，请重试",
+    "frequency": "提醒频率",
+    "frequencyDesc": "在以下天数提前提醒（可多选）",
+    "customDays": "自定义提前天数",
+    "customDaysPlaceholder": "如 2, 5, 10（逗号分隔）",
+    "serverchan": "Server酱 推送",
+    "serverchanDesc": "通过 Server酱 推送微信提醒（sc.ftqq.com）",
+    "serverchanKey": "SCKEY",
+    "serverchanKeyPlaceholder": "粘贴你的 Server酱 SCKEY",
+    "serverchanHelp": "在 http://sc.ftqq.com/3.version 获取 SCKEY",
+    "email": "邮件提醒",
+    "emailDesc": "通过 SMTP 发送邮件提醒",
+    "emailHost": "SMTP 服务器",
+    "emailPort": "端口",
+    "emailUser": "发件账号",
+    "emailPassword": "授权码/密码",
+    "emailFrom": "发件人名称",
+    "emailTo": "接收邮箱",
+    "template": "消息模板",
+    "templateDesc": "可用变量：",
+    "testSend": "发送测试",
+    "testResult": "测试结果",
+    "testEmail": "邮件",
+    "testServerchan": "Server酱",
+    "success": "成功",
+    "failed": "失败",
+    "testNote": "若两项都失败，请先在上方启用并填写正确的 SCKEY / 邮箱账号"
   }
 }

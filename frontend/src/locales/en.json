@@ -6,7 +6,8 @@
   "nav": {
     "home": "Home",
     "calendar": "Calendar",
-    "stats": "Stats"
+    "stats": "Stats",
+    "settings": "Settings"
   },
   "common": {
     "add": "Add",
@@ -98,5 +99,38 @@
     "byCategory": "By Category",
     "byMonth": "By Month",
     "clickHint": "Click to view details"
+  },
+  "settings": {
+    "title": "Reminder Settings",
+    "subtitle": "Configure push channels, frequency and message template. Saved instantly — no restart needed.",
+    "save": "Save Settings",
+    "saved": "Settings saved ✅",
+    "saveFailed": "Save failed, please retry",
+    "frequency": "Reminder Frequency",
+    "frequencyDesc": "Get reminded ahead of these days (multi-select)",
+    "customDays": "Custom lead days",
+    "customDaysPlaceholder": "e.g. 2, 5, 10 (comma separated)",
+    "serverchan": "Server酱 Push",
+    "serverchanDesc": "Push to WeChat via Server酱 (sc.ftqq.com)",
+    "serverchanKey": "SCKEY",
+    "serverchanKeyPlaceholder": "Paste your Server酱 SCKEY",
+    "serverchanHelp": "Get SCKEY at http://sc.ftqq.com/3.version",
+    "email": "Email Reminder",
+    "emailDesc": "Send reminder emails via SMTP",
+    "emailHost": "SMTP Host",
+    "emailPort": "Port",
+    "emailUser": "Sender Account",
+    "emailPassword": "Auth Code / Password",
+    "emailFrom": "Sender Name",
+    "emailTo": "Recipient Email",
+    "template": "Message Template",
+    "templateDesc": "Available variables:",
+    "testSend": "Send Test",
+    "testResult": "Test Result",
+    "testEmail": "Email",
+    "testServerchan": "Server酱",
+    "success": "OK",
+    "failed": "Failed",
+    "testNote": "If both failed, enable a channel above and fill the correct SCKEY / email account"
   }
 }
