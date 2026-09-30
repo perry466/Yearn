@@ -22,6 +22,14 @@ jobs:
       run:
         shell: bash
 
+    env:
+      # Windows runner 上 Python 的 stdout 默认用 locale 编码（cp1252 charmap），
+      # 只要 print 中文就抛 UnicodeEncodeError 并直接以退出码 1 结束，
+      # 日志里只剩一行「Process completed with exit code 1」，极难定位。
+      # PYTHONUTF8 让整个解释器切到 UTF-8 模式，PYTHONIOENCODING 兜住管道输出。
+      PYTHONUTF8: "1"
+      PYTHONIOENCODING: utf-8
+
     steps:
       - name: 拉取代码
         uses: actions/checkout@v4
@@ -43,10 +51,12 @@ jobs:
           pip install -r backend/requirements.txt
           pip install -r requirements-build.txt
 
+      # 这里的输出刻意全用 ASCII：诊断步骤本身不该成为新的失败点。
+      # 中文交给 env 里的 PYTHONIOENCODING 保障，脚本内部另有兜底。
       - name: 环境自检
         run: |
           python --version
-          python -c "import sys; print('解释器位置:', sys.executable)"
+          python -c "import sys; print('exe:', sys.executable); print('stdout encoding:', sys.stdout.encoding)"
           pyinstaller --version
 
       - name: 打包绿色版

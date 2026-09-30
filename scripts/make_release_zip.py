@@ -17,6 +17,17 @@ from pathlib import Path
 
 import shutil
 
+# 关键兜底：Windows 上 Python 的 stdout 默认走 locale 编码（cp1252 charmap），
+# 一打印中文就抛 UnicodeEncodeError 并以退出码 1 结束 —— 而本脚本的输出、
+# 以及要打印的文件名（如 使用说明.txt）都可能含中文。
+# 这里主动切到 UTF-8，不依赖调用方是否设置了 PYTHONIOENCODING。
+# errors="replace" 保证最坏情况下也只是显示成问号，而不是让整个发布流程中断。
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding="utf-8", errors="replace")
+    except (AttributeError, ValueError):
+        pass
+
 # 与 COLLECT(..., name="Yearn") 保持一致
 APP_NAME = "Yearn"
 DIST_DIR = Path("dist")
