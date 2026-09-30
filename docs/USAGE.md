@@ -7,6 +7,35 @@ Yearn is a birthday reminder app with **full lunar calendar support**: add frien
 
 ---
 
+## 🚀 Local Setup (from scratch)
+
+Clone the repo and run the **whole project with one command** — a single backend
+process serves the API **and** the built frontend, and the reminder scheduler starts
+automatically.
+
+```bash
+git clone https://github.com/perry466/Yearn.git
+cd Yearn/backend
+pip install -r requirements.txt          # 1) backend dependencies
+
+cd ../frontend
+npm install
+npm run build                            # 2) build frontend/dist (required, not in git)
+
+cd ../backend
+python run.py                            # 3) API + scheduler + serves frontend
+```
+
+- Open **http://localhost:8000**.
+- Stop anytime with `python stop.py` (same folder).
+- ⚠️ `frontend/dist` is **git-ignored**, so you must run `npm run build` once after
+  cloning — otherwise the web UI is blank.
+- Want hot-reload while developing? Run the backend (`uvicorn app.main:app`) and the
+  frontend (`npm run dev` on `:5173`) separately instead. See
+  [README.md §3](../README.md#3-quick-start).
+
+---
+
 ## 📱 The Three Pages
 
 The app has three main pages, switched from the top nav:
@@ -116,12 +145,14 @@ To edit: click the record in the list / card view — the same modal opens pre-f
 
 ## 🔔 Reminders
 
-A backend scheduler checks daily at 09:00 (Asia/Shanghai) and sends reminders **30 / 15 / 7 / 1 days** ahead:
+A scheduler checks daily at 09:00 (Asia/Shanghai) — and once immediately on app
+startup — and sends reminders **30 / 15 / 7 / 1 days** ahead:
 
 - **Channels**: Email (SMTP) + ServerChan.
 - **Dedup**: the same person in the same lead window is never notified twice.
-- **Toggle**: each record has its own reminder switch; the master switch lives in `backend/app/core/config.py`.
-- **Setup**: fill in the SMTP app password / ServerChan SCKEY, then run the scheduler as a service: `python -m app.scheduler`.
+- **Configure in the app**: open **Settings (🔔)** in the web UI (`/settings`) to toggle
+  channels, pick lead days, and edit the message template — no code edits needed.
+- **Scheduler**: starts automatically with the app; you don't run it separately.
 
 See [README.md §6 (Reminder System)](../README.md#-6-reminder-system) for details.
 
@@ -138,7 +169,7 @@ See [README.md §6 (Reminder System)](../README.md#-6-reminder-system) for detai
 ## ❓ FAQ
 
 - **List / cards empty?** Make sure the backend is up (default `:8000`) and the `/api` proxy works.
-- **A birthday wasn't reminded?** Check that record's reminder switch, backend `enabled`, SMTP / SCKEY, and that the scheduler is running.
+- **A birthday wasn't reminded?** Open **Settings (`/settings`)**: make sure the channel is enabled with correct credentials, at least one lead day is selected, and that record's reminder switch is on. The scheduler starts with the app automatically.
 - **More troubleshooting**: see [README.md §9 (FAQ)](../README.md#-9-faq).
 
 ---

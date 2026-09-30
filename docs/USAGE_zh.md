@@ -7,6 +7,32 @@
 
 ---
 
+## 🚀 本地从零启动（Local Setup）
+
+克隆仓库后，**一条命令就能跑起整个项目** —— 单个后端进程同时提供 API **和** 已构建的
+前端，提醒调度也会自动启动。
+
+```bash
+git clone https://github.com/perry466/Yearn.git
+cd Yearn/backend
+pip install -r requirements.txt          # ① 安装后端依赖
+
+cd ../frontend
+npm install
+npm run build                            # ② 构建 frontend/dist（必做，不在 git 中）
+
+cd ../backend
+python run.py                            # ③ 启动 API + 调度 + 托管前端
+```
+
+- 打开 **http://localhost:8000**。
+- 随时用 `python stop.py`（同一目录）停止。
+- ⚠️ `frontend/dist` **被 git 忽略**，clone 后必须跑一次 `npm run build`，否则网页空白。
+- 开发时想热更新？可分开跑后端（`uvicorn app.main:app`）和前端（`npm run dev`，端口 `:5173`）。
+  详见 [README_zh.md 第三节](../README_zh.md#三、快速启动)。
+
+---
+
 ## 📱 三大页面一览
 
 应用分三个主页面，顶部导航栏切换：
@@ -116,12 +142,12 @@
 
 ## 🔔 提醒
 
-提醒由后端调度器每天 09:00（Asia/Shanghai）自动检查，并在提前 **30 / 15 / 7 / 1 天** 时发送：
+调度器每天 09:00（Asia/Shanghai）自动检查，并在启动时会立即检查一次，提前 **30 / 15 / 7 / 1 天** 时发送：
 
 - **渠道**：邮件（SMTP）+ Server 酱。
 - **去重**：同一人的同一提前窗口不会重复通知。
-- **开关**：每条记录的「提醒」开关独立控制；总开关在后端 `backend/app/core/config.py`。
-- **配置**：填入 SMTP 授权码 / Server 酱 SCKEY 后，单独常驻运行调度器 `python -m app.scheduler` 即可。
+- **在应用里配置**：打开网页 **「设置 (🔔)」** 页（`/settings`）即可开关渠道、勾选提前天数、编辑消息模板，无需改代码。
+- **调度器**：随应用自动启动，无需单独运行。
 
 详见 [README_zh.md 第六节（提醒系统）](../README_zh.md#六提醒系统)。
 
@@ -138,7 +164,7 @@
 ## ❓ 常见问题
 
 - **列表 / 卡片没数据？** 先确认后端已启动（默认 `:8000`），前端代理 `/api` 正常。
-- **某天生日没提醒？** 检查该记录「提醒」开关、后端 `enabled`、SMTP / SCKEY、调度器是否在跑。
+- **某天生日没提醒？** 打开 **「设置」(`/settings`)** 检查：渠道已开启且凭据正确、至少勾选了一个提前天数、该记录的「提醒」开关为开。调度器随应用自动启动。
 - **更多排查**：见 [README_zh.md 第九节（常见问题）](../README_zh.md#九常见问题)。
 
 ---

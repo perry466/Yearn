@@ -37,6 +37,29 @@
 
 ---
 
+## 🚀 本地从零启动（推荐）
+
+> 💡 **跑起整个项目最简单的方式** —— 一条后端进程同时提供 API **和** 已构建的前端，提醒调度也会自动启动。
+
+```bash
+git clone https://github.com/perry466/Yearn.git
+cd Yearn/backend
+pip install -r requirements.txt        # ① 安装后端依赖
+
+cd ../frontend
+npm install
+npm run build                          # ② 关键：构建 frontend/dist（不在 git 里）
+
+cd ../backend
+python run.py                          # ③ 启动 API + 调度 + 托管前端
+```
+
+然后打开 **http://localhost:8000**。随时用 `python stop.py` 停止。
+
+> ⚠️ `frontend/dist` 被 git 忽略，所以 clone 后**必须跑一次 `npm run build`**，否则网页是空白的。完整图文步骤见 [使用指南（中文）](./docs/USAGE_zh.md)。
+
+---
+
 ## 📑 目录
 
 > 📱 **第一次用？** 先看 **[使用指南（中文）](./docs/USAGE_zh.md)** · **[Usage Guide (English)](./docs/USAGE.md)** —— 带截图，逐页讲怎么用。
@@ -93,10 +116,23 @@ yearn/
 
 ## 🚀 三、快速启动
 
-> 默认约定：后端跑在 `0.0.0.0:8000`，前端 dev server 跑在 `0.0.0.0:5173`，
-> 前端通过 `/api` 代理把请求转发到本机 `localhost:8000`。
+> **推荐 —— 单服务（一条命令）**：装好依赖、构建一次前端后，一条后端进程同时提供
+> **API 和已构建的前端**，提醒调度也会自动启动。
 
-### 1. 启动后端
+```bash
+cd /path/to/yearn/backend
+pip install -r requirements.txt
+cd ../frontend && npm install && npm run build   # 构建 frontend/dist（必做，不在 git 中）
+cd ../backend
+python run.py            # 在 :8000 上提供 API + 调度 + 前端
+```
+
+打开 **http://localhost:8000**。随时用 `python stop.py` 停止。
+
+> `frontend/dist` 被 git 忽略，clone 后必须跑一次 `npm run build`，否则网页空白。
+> 提醒配置建议在网页 **「设置」** 页（`/settings`）里改，不必动配置文件。
+
+### 1. 启动后端（独立 / 开发 API）
 
 ```bash
 cd /path/to/yearn/backend
@@ -115,6 +151,7 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000
 - API 根地址：`http://<服务器IP或域名>:8000`
 - 接口文档（Swagger）：`http://<服务器IP或域名>:8000/docs`
 - 数据库 `birthday.db` 会在首次启动时自动创建。
+- 当 `frontend/dist` 存在时，这个进程也会在 `/` 直接托管前端页面。
 
 > **Windows 差异**：用 PowerShell 时先 `cd backend`，再
 > `python -m venv venv`、`.\venv\Scripts\Activate.ps1`、`pip install -r requirements.txt`、
@@ -122,17 +159,16 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000
 >
 > **关于 PYTHONPATH**：只要在 `backend/` 目录下执行 `python -m uvicorn ...` 即可，
 > 当前目录会自动加入 Python 路径，无需额外设置；若要从别的目录运行，
-> 可 `export PYTHONPATH=/path/to/yearn/backend` 后再执行。
+> 可 `export PYTHONPATH=/path/to/yearn/backend` 后再执行。（或者直接用 `python run.py`，
+> 它会自动把路径设好。）
 
-### 2. 启动前端
+### 2. 前端开发服务器（可选，热更新）
+
+如果想开发时实时热更新，可以把前端单独跑在 `:5173`（它会把 `/api` 代理到 `:8000` 后端）：
 
 ```bash
 cd /path/to/yearn/frontend
-
-# 安装依赖（首次）
 npm install
-
-# 启动开发服务器（已配置 host:true，监听 0.0.0.0）
 npm run dev
 ```
 
@@ -172,7 +208,7 @@ server: {
 
 ## 🏭 五、生产部署建议
 
-`npm run dev` 是开发服务器，不适合长期对外。建议构建静态文件并用 Nginx 反代后端：
+`npm run dev` 是开发服务器，不适合长期对外。构建静态文件（后端会自动托管 `frontend/dist`），并可在前面用 Nginx 做反向代理：
 
 ```bash
 cd /path/to/yearn/frontend
@@ -209,46 +245,27 @@ source venv/bin/activate
 uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
 
-> 提醒调度（每日 09:00 Asia/Shanghai）需单独常驻运行：
-> `python -m app.scheduler`（同样在 backend 目录下、venv 激活后执行）。
+> 提醒调度（每日 09:00 Asia/Shanghai，启动时还会立即检查一次）会随应用**自动启动**，
+> 不需要单独进程。同一个 `uvicorn app.main:app` 进程也会托管已构建的 `frontend/dist`，
+> 所以单服务就覆盖了 API + 网页 + 调度。
 
 ---
 
 ## 🔔 六、提醒系统
 
-- **调度**：每天 09:00（Asia/Shanghai）
-- **提前天数**：30、15、7、1 天
-- **渠道**：邮件（SMTP）+ Server 酱
-- **去重**：同一人的同一提前窗口不会重复通知
+提醒配置都在**应用里完成** —— 打开网页的 **「设置 (🔔)」** 页
+（单服务启动后访问 `http://localhost:8000/settings`），无需改代码。
 
-### 配置（`backend/app/core/config.py`）
+- **调度**：每天 09:00（Asia/Shanghai），启动时还会立即检查一次。
+- **提前天数**：在设置页勾选 30 / 15 / 7 / 1 天（也可自定义）。
+- **渠道**：邮件（SMTP）+ Server 酱 —— 在设置页开关并填好凭据。
+- **消息模板**：可用变量 `{name}`、`{days}`、`{date}`、`{age}`、`{category}` 自定义。
+- **去重**：同一人的同一提前窗口不会重复通知。
+- **调度器**：随应用**自动启动**（FastAPI lifespan），**无需**单独拉起。
 
-```python
-EMAIL_CONFIG = {
-    "enabled": True,
-    "smtp_host": "smtp.163.com",     # 或 smtp.qq.com / smtp.gmail.com
-    "smtp_port": 587,
-    "smtp_user": "your@email.com",
-    "smtp_pass": "你的授权码",        # 注意：是邮箱授权码，不是登录密码
-    "from_name": "🎂 生日提醒",
-    "to_email": "notify@example.com",
-}
-
-SERVERCHAN_CONFIG = {
-    "enabled": True,
-    "sckey": "SCT...",               # 去 sc.ftqq.com 注册获取
-}
-
-REMIND_AHEAD_DAYS = [30, 15, 7, 1]
-```
-
-### 手动跑一次提醒检查
-
-```bash
-cd /path/to/yearn/backend
-source venv/bin/activate
-python -m app.scheduler
-```
+> **进阶 / 兜底**：默认值写在 `backend/app/core/config.py`；首次运行的取值存在数据库
+> `settings` 表里（由设置页写入）。如需把调度和 API 分开部署，`python -m app.scheduler`
+> 仍可单独运行检查任务。
 
 ---
 
@@ -318,8 +335,9 @@ A：删除 `backend/birthday.db` 重启即可（SQLAlchemy 会自动重建表）
 已有数据需保留时请用 Alembic 迁移。
 
 **Q6：提醒没发出去**
-A：依次检查：① `config.py` 里 `enabled=True`；② SMTP 授权码 / Server 酱 SCKEY 正确；
-③ 调度器 `python -m app.scheduler` 在常驻运行；④ 该联系人 `is_enabled=True`。
+A：打开 **「设置」(`/settings`)** 检查：① 渠道（邮件 / Server 酱）已开启且凭据正确
+（SMTP 授权码 / Server 酱 SCKEY）；② 至少勾选了一个提前天数；③ 该联系人 `is_enabled=True`。
+调度器会随应用自动启动，无需单独进程。
 
 ---
 

@@ -37,6 +37,29 @@
 
 ---
 
+## 🚀 Local Setup (from scratch)
+
+> 💡 **Easiest way to run the whole project** — one backend process serves the API **and** the built frontend, and the reminder scheduler starts automatically.
+
+```bash
+git clone https://github.com/perry466/Yearn.git
+cd Yearn/backend
+pip install -r requirements.txt        # 1) backend dependencies
+
+cd ../frontend
+npm install
+npm run build                          # 2) IMPORTANT: builds frontend/dist (not in git)
+
+cd ../backend
+python run.py                          # 3) starts API + scheduler + serves frontend
+```
+
+Then open **http://localhost:8000**. Stop anytime with `python stop.py`.
+
+> ⚠️ `frontend/dist` is git-ignored, so **you must run `npm run build` once** after cloning, or the web UI will be blank. Full walkthrough → [Usage Guide](./docs/USAGE.md).
+
+---
+
 ## 📑 Table of Contents
 
 > 📱 **New here?** Start with the **[Usage Guide (English)](./docs/USAGE.md)** · **[使用指南（中文）](./docs/USAGE_zh.md)** — screenshots + how to use every page.
@@ -93,10 +116,25 @@ yearn/
 
 ## 🚀 3. Quick Start
 
-> Convention: backend on `0.0.0.0:8000`, frontend dev server on `0.0.0.0:5173`.
-> The frontend proxies `/api` to `localhost:8000` on the same machine.
+> **Recommended — single service (one command):** install deps, build the frontend
+> once, then a single backend process serves **both** the API and the built frontend,
+> and the reminder scheduler starts automatically.
 
-### 3.1 Backend
+```bash
+cd /path/to/yearn/backend
+pip install -r requirements.txt
+cd ../frontend && npm install && npm run build   # builds frontend/dist (required, not in git)
+cd ../backend
+python run.py            # API + scheduler + serves frontend on :8000
+```
+
+Open **http://localhost:8000**. Stop anytime with `python stop.py`.
+
+> `frontend/dist` is git-ignored, so you must run `npm run build` once after cloning,
+> otherwise the web UI is blank. Prefer editing reminders in the web **Settings** page
+> (`/settings`) instead of config files.
+
+### 3.1 Backend (standalone / dev API)
 
 ```bash
 cd /path/to/yearn/backend
@@ -115,24 +153,25 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000
 - API root: `http://<server-ip-or-host>:8000`
 - Swagger docs: `http://<server-ip-or-host>:8000/docs`
 - `birthday.db` is created automatically on first start.
+- When `frontend/dist` exists, this same process also serves the web UI at `/`.
 
 > **Windows (PowerShell)** differences: `cd backend`, then
 > `python -m venv venv`, `.\venv\Scripts\Activate.ps1`, `pip install -r requirements.txt`,
 > `uvicorn app.main:app --host 0.0.0.0 --port 8000`.
 >
-> **About PYTHONPATH**: running `python -m uvicorn ...` from inside `backend/`
-> already puts the current dir on the Python path, so no extra setup is needed.
-> To run from another directory, `export PYTHONPATH=/path/to/yearn/backend` first.
+> **About PYTHONPATH**: running from inside `backend/` already puts the current dir on
+> the Python path, so no extra setup is needed. To run from another directory,
+> `export PYTHONPATH=/path/to/yearn/backend` first. (Or just use `python run.py`, which
+> sets the path for you.)
 
-### 3.2 Frontend
+### 3.2 Frontend dev server (optional, hot-reload)
+
+If you want live reload while developing, run the frontend separately on `:5173`
+(it proxies `/api` to the backend on `:8000`):
 
 ```bash
 cd /path/to/yearn/frontend
-
-# install dependencies (first time)
 npm install
-
-# start dev server (host:true is configured, listens on 0.0.0.0)
 npm run dev
 ```
 
@@ -172,8 +211,9 @@ server: {
 
 ## 🏭 5. Production Deployment
 
-`npm run dev` is a dev server — not ideal to leave running. Build static files and
-reverse-proxy the backend with Nginx:
+`npm run dev` is a dev server — not ideal to leave running. Build static files (the
+backend serves `frontend/dist` automatically) and, optionally, put Nginx in front as
+a reverse proxy:
 
 ```bash
 cd /path/to/yearn/frontend
@@ -208,46 +248,30 @@ source venv/bin/activate
 uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
 
-> The reminder scheduler (daily 09:00 Asia/Shanghai) must run separately and stay
-> up: `python -m app.scheduler` (from `backend/`, with venv activated).
+> The reminder scheduler (daily 09:00 Asia/Shanghai, plus an immediate check on
+> startup) is started automatically by the app — no separate process needed. The same
+> `uvicorn app.main:app` process also serves the built `frontend/dist`, so a single
+> service covers API + web UI + scheduler.
 
 ---
 
 ## 🔔 6. Reminder System
 
-- **Schedule**: daily 09:00 (Asia/Shanghai)
-- **Lead times**: 30, 15, 7, 1 days ahead
-- **Channels**: Email (SMTP) + ServerChan
-- **Dedup**: same person + same lead window → no duplicate
+Reminders are configured **in the app** — open **Settings (🔔)** in the web UI
+(`http://localhost:8000/settings` when running the single service). No code edits needed.
 
-### Configure (`backend/app/core/config.py`)
+- **Schedule**: daily 09:00 (Asia/Shanghai), plus an immediate check on app startup.
+- **Lead times**: choose 30 / 15 / 7 / 1 days (or add custom) in the Settings page.
+- **Channels**: Email (SMTP) + ServerChan — toggle and fill credentials in the UI.
+- **Message template**: edit with variables `{name}`, `{days}`, `{date}`, `{age}`, `{category}`.
+- **Dedup**: same person + same lead window → no duplicate.
+- **Scheduler**: starts automatically with the app (via FastAPI lifespan) — you do **not**
+  need to launch it separately.
 
-```python
-EMAIL_CONFIG = {
-    "enabled": True,
-    "smtp_host": "smtp.163.com",     # or smtp.qq.com / smtp.gmail.com
-    "smtp_port": 587,
-    "smtp_user": "your@email.com",
-    "smtp_pass": "your_app_password", # app password, NOT login password
-    "from_name": "🎂 Birthday Reminder",
-    "to_email": "notify@example.com",
-}
-
-SERVERCHAN_CONFIG = {
-    "enabled": True,
-    "sckey": "SCT...",               # from sc.ftqq.com
-}
-
-REMIND_AHEAD_DAYS = [30, 15, 7, 1]
-```
-
-### Run the scheduler once manually
-
-```bash
-cd /path/to/yearn/backend
-source venv/bin/activate
-python -m app.scheduler
-```
+> **Advanced / fallback**: default values live in `backend/app/core/config.py`; the
+> first-run values are stored in the DB `settings` table (written by the Settings page).
+> `python -m app.scheduler` can still run the checker as a standalone process if you want
+> to separate scheduling from the API.
 
 ---
 
@@ -320,9 +344,10 @@ A: Delete `backend/birthday.db` and restart (SQLAlchemy recreates tables).
 For keeping existing data, use Alembic migrations.
 
 **Q6: Reminders not sending**
-A: Check: ① `enabled=True` in `config.py`; ② correct SMTP app password / ServerChan
-SCKEY; ③ scheduler `python -m app.scheduler` is running; ④ the contact's
-`is_enabled=True`.
+A: Open **Settings (`/settings`)** and check: ① the channel (Email / ServerChan) is
+enabled and its credentials are correct (SMTP app password / ServerChan SCKEY); ② at
+least one lead time is selected; ③ the contact's `is_enabled=True`. The scheduler starts
+automatically with the app, so no separate process is required.
 
 ---
 
