@@ -22,16 +22,53 @@ APP_NAME = "Yearn"
 DIST_DIR = Path("dist")
 
 
-def main(tag: str) -> int:
-    app_dir = DIST_DIR / APP_NAME
+def _move_readme_to_root(app_dir: Path) -> None:
+    """把随包说明文件放到绿色版根目录。
 
-    if not app_dir.is_dir():
-        print(f"[make_zip] 错误：找不到目录 {app_dir}", file=sys.stderr)
-        if DIST_DIR.is_dir():
-            contents = sorted(p.name for p in DIST_DIR.iterdir())
-            print(f"[make_zip] dist/ 下实际存在：{contents}", file=sys.stderr)
-        else:
-            print("[make_zip] dist/ 不存在 —— 上一步打包很可能失败了", file=sys.stderr)
+    坑：虽然 spec 里写的是 datas=[("packaging/使用说明.txt", ".")]，但 onedir 模式下
+    COLLECT 会把 a.datas 全部塞进 contents_directory（这里是 lib/），
+    所以文件实际落在 dist/Yearn/lib/使用说明.txt，而不是用户一眼能看到的地方。
+    好在 PyInstaller 确实把它打进去了，这里只是把它挪回根目录。
+    """
+    lib_dir = app_dir / "lib"
+    for name in ("使用说明.txt", "README.txt"):
+        src = lib_dir / name
+        if src.is_file():
+            shutil.copy2(src, app_dir / name)
+            print(f"[make_zip] 已归位说明文件：lib/{name} → {name}")
+            return
+    print("[make_zip] 提示：未找到随包说明文件（不影响运行）", file=sys.stderr)
+
+
+def _locate_app_dir() -> Path | None:
+    """定位实际的产物目录。
+
+    正常情况下就是 dist/Yearn。但如果 PyInstaller 大版本升级改变了 COLLECT 的输出
+    目录命名，这里做一层兜底：直接在 dist 下找含 Yearn.exe 的目录，
+    避免整个发布流程因为目录名差异而中断。
+    """
+    primary = DIST_DIR / APP_NAME
+    if primary.is_dir():
+        return primary
+
+    if DIST_DIR.is_dir():
+        print(f"[make_zip] 未找到 {primary}，dist/ 下实际有："
+              f"{sorted(p.name for p in DIST_DIR.iterdir())}", file=sys.stderr)
+        candidates = sorted(
+            p for p in DIST_DIR.iterdir()
+            if p.is_dir() and (p / f"{APP_NAME}.exe").exists()
+        )
+        if candidates:
+            print(f"[make_zip] 回退到实际产物目录：{candidates[0].name}", file=sys.stderr)
+            return candidates[0]
+
+    print("[make_zip] dist/ 不存在 —— 上一步打包很可能失败了", file=sys.stderr)
+    return None
+
+
+def main(tag: str) -> int:
+    app_dir = _locate_app_dir()
+    if app_dir is None:
         return 1
 
     files = sorted(p.name for p in app_dir.iterdir())
@@ -41,10 +78,13 @@ def main(tag: str) -> int:
     if missing:
         print(f"[make_zip] 警告：缺少预期内容 {missing}", file=sys.stderr)
 
+    _move_readme_to_root(app_dir)
+
     archive_base = f"{APP_NAME}-{tag}-windows-x64"
-    dest = shutil.make_archive(archive_base, "zip", root_dir=DIST_DIR, base_dir=APP_NAME)
+    # base_dir 必须用实际目录名，否则兜底场景下会因找不到固定名字而抛 FileNotFoundError
+    dest = shutil.make_archive(archive_base, "zip", root_dir=app_dir.parent, base_dir=app_dir.name)
     size_mb = os.path.getsize(dest) / 1048576
-    print(f"[make_zip] 打包完成：{dest}（{size_mb:.1f} MB）")
+    print(f"[make_zip] 打包完成：{dest}（{size_mb:.1f} MB），顶层目录 {app_dir.name}/")
     return 0
 
 

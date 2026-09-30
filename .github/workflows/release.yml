@@ -43,54 +43,96 @@ jobs:
           pip install -r backend/requirements.txt
           pip install -r requirements-build.txt
 
+      - name: 环境自检
+        run: |
+          python --version
+          python -c "import sys; print('解释器位置:', sys.executable)"
+          pyinstaller --version
+
       - name: 打包绿色版
         run: pyinstaller Yearn.spec --noconfirm
 
-      # 用 Python 标准库压缩而不是外部工具：不依赖 runner 预装什么。
-      # root_dir + base_dir 保证 zip 内顶层是单个整洁的 Yearn 目录，
-      # 用户解压后得到一个文件夹，而不是散落一地的文件。
-      # ls 失败不中断脚本，好让 python 脚本输出真正的诊断信息
+      # 压缩后立刻校验：Release 步骤最常见的失败原因就是这里的路径对不上
       - name: 确认产物并压缩
         run: |
-          ls -la dist/ || echo "（dist 不存在，说明上一步打包失败）"
-          ls -la dist/Yearn/ || echo "（dist/Yearn 不存在，交给脚本诊断）"
           python scripts/make_release_zip.py "${{ github.ref_name }}"
+          test -f "Yearn-${{ github.ref_name }}-windows-x64.zip" \
+            && echo "zip 校验通过" || { echo "zip 缺失"; exit 1; }
 
-      - name: 发布 Release
-        uses: softprops/action-gh-release@v2
+      # 即使后面的 Release 步骤失败，产物仍可从 Artifacts 下载排查
+      - name: 上传构建产物
+        uses: actions/upload-artifact@v4
         with:
-          files: |
-            Yearn-${{ github.ref_name }}-windows-x64.zip
+          name: Yearn-${{ github.ref_name }}
+          path: Yearn-${{ github.ref_name }}-windows-x64.zip
+          if-no-files-found: error
+
+      # 无论成败都导出诊断信息：CI 日志在排查时不一定能看到全文，
+      # 落到 artifact 里就能下载查阅（dist 到底生成了什么、有没有 exe）
+      - name: 导出诊断信息
+        if: always()
+        run: |
+          {
+            echo "=== 工作目录 ==="
+            pwd
+            echo "=== 根目录 ==="
+            ls -la
+            echo "=== dist 树（两层）==="
+            find dist -maxdepth 2 2>/dev/null | head -60 || echo "（无 dist）"
+          } > diagnosis.txt 2>&1
+          cat diagnosis.txt
+
+      - name: 上传诊断信息
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: diagnosis-${{ github.ref_name }}
+          path: diagnosis.txt
+          if-no-files-found: warn
+
+      - name: 生成发布说明
+        run: |
+          cat > RELEASE_NOTES.md <<'EOF'
+          ### 怎么用
+
+          1. 下载下面的 `Yearn-${{ github.ref_name }}-windows-x64.zip`
+          2. **解压**到任意位置，会得到一个 `Yearn` 文件夹
+          3. 进入文件夹，双击 `Yearn.exe`，浏览器会自动打开 `http://localhost:8000`
+          4. Yearn 会在右下角系统托盘常驻，关掉浏览器后服务仍在运行
+
+          ### 文件夹里有什么
+
+          | 文件 | 说明 |
+          | --- | --- |
+          | `Yearn.exe` | 启动程序，双击它 |
+          | `lib/` | 运行依赖，不要删除或改名 |
+          | `data/` | 你的数据与日志（birthday.db、yearn.log），首次运行自动创建 |
+          | `使用说明.txt` | 离线版说明 |
+
+          ### 注意事项
+
+          - 备份或换电脑：整个 `Yearn` 文件夹一起拷走即可，数据在 `data/` 里
+          - 想退出：右键点击右下角托盘图标 → **退出**
+          - 服务在托盘常驻期间，每天 09:00 会自动检查当天生日并提醒
+          - Windows 可能提示「已保护你的电脑」，点 **更多信息 → 仍要运行** 即可
+            （个人项目未购买代码签名证书，属正常现象）
+          - 若 8000 端口被占用，程序会自动改用 8001 等后续端口
+
+          ### 源码运行
+
+          想从源码启动、或想自己打包，请查看 [README_zh.md](https://github.com/perry466/Yearn/blob/main/README_zh.md)
+          的「十、打包为 Windows 桌面应用」一节。
+          EOF
+
+      # 用 runner 自带的 gh CLI 而不是第三方 action：
+      # softprops/action-gh-release 是 Node 20 action，在被强制跑在 Node 24 的 runner 上
+      # 有崩溃风险；gh 是官方预装的原生二进制，不受 Node 版本影响，报错信息也更清楚
+      - name: 发布 Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${{ github.ref_name }}" \
+            --title "Yearn 岁岁念 ${{ github.ref_name }}" \
+            --notes-file RELEASE_NOTES.md \
+            "Yearn-${{ github.ref_name }}-windows-x64.zip" \
             README_zh.md
-          body: |
-            ## Yearn 岁岁念 ${{ github.ref_name }}
-
-            ### 怎么用
-
-            1. 下载下面的 `Yearn-${{ github.ref_name }}-windows-x64.zip`
-            2. **解压**到任意位置，会得到一个 `Yearn` 文件夹
-            3. 进入文件夹，双击 `Yearn.exe`，浏览器会自动打开 `http://localhost:8000`
-            4. Yearn 会在右下角系统托盘常驻，关掉浏览器后服务仍在运行
-
-            ### 文件夹里有什么
-
-            | 文件 | 说明 |
-            | --- | --- |
-            | `Yearn.exe` | 启动程序，双击它 |
-            | `lib/` | 运行依赖，不要删除或改名 |
-            | `data/` | 你的数据与日志（birthday.db、yearn.log），首次运行自动创建 |
-            | `使用说明.txt` | 离线版说明 |
-
-            ### 注意事项
-
-            - 备份或换电脑：整个 `Yearn` 文件夹一起拷走即可，数据在 `data/` 里
-            - 想退出：右键点击右下角托盘图标 → **退出**
-            - 服务在托盘常驻期间，每天 09:00 会自动检查当天生日并提醒
-            - Windows 可能提示「已保护你的电脑」，点 **更多信息 → 仍要运行** 即可
-              （个人项目未购买代码签名证书，属正常现象）
-            - 若 8000 端口被占用，程序会自动改用 8001 等后续端口
-
-            ### 源码运行
-
-            想从源码启动、或想自己打包，请查看 [README_zh.md](../../README_zh.md)
-            的「十、打包为 Windows 桌面应用」一节。
