@@ -60,20 +60,35 @@ python run.py                          # ③ 启动 API + 调度 + 托管前端
 
 ---
 
+## 📦 免安装版下载（Windows，不想配环境就点这里）
+
+不想装 Python / Node？去 **[Releases](https://github.com/perry466/Yearn/releases)** 下载
+`Yearn-xxx-windows-x64.zip`，**解压 → 双击 `Yearn.exe`** 即可使用，全程无需命令行。
+
+- 启动后**没有黑色窗口**，程序常驻在右下角**系统托盘**（关闭浏览器不会停止服务）
+- 数据自动存放在解压目录的 `data/` 里，备份时整个文件夹拷走即可
+- 退出请**右键托盘图标 → 退出**
+
+> 想知道这个 exe 是怎么打包出来的，或想自己打一个，请看
+> [十、打包为 Windows 桌面应用](#十打包为-windows-桌面应用)。
+
+---
+
 ## 📑 目录
 
 > 📱 **第一次用？** 先看 **[使用指南（中文）](./docs/USAGE_zh.md)** · **[Usage Guide (English)](./docs/USAGE.md)** —— 带截图，逐页讲怎么用。
 
-- [📋 一、环境要求](#一、环境要求)
-- [📁 二、项目结构](#二、项目结构)
-- [🚀 三、快速启动](#三、快速启动)
-- [🌐 四、局域网/服务器访问说明](#四、局域网服务器访问说明)
-- [🏭 五、生产部署建议](#五、生产部署建议)
-- [🔔 六、提醒系统](#六、提醒系统)
-- [💾 七、数据模型](#七、数据模型)
-- [🔌 八、接口一览](#八、接口一览)
-- [❓ 九、常见问题](#九、常见问题)
-- [🔧 十、开发指引（简）](#十、开发指引（简）)
+- [📋 一、环境要求](#一环境要求)
+- [📁 二、项目结构](#二项目结构)
+- [🚀 三、快速启动](#三快速启动)
+- [🌐 四、局域网/服务器访问说明](#四局域网服务器访问说明)
+- [🏭 五、生产部署建议](#五生产部署建议)
+- [🔔 六、提醒系统](#六提醒系统)
+- [💾 七、数据模型](#七数据模型)
+- [🔌 八、接口一览](#八接口一览)
+- [❓ 九、常见问题](#九常见问题)
+- [🔧 十、打包为 Windows 桌面应用](#十打包为-windows-桌面应用)
+- [🛠 十一、开发指引（简）](#十一开发指引简)
 
 ---
 
@@ -102,14 +117,21 @@ yearn/
 │   │   ├── scheduler.py    # 每日提醒调度
 │   │   └── main.py         # 入口
 │   ├── requirements.txt
-│   ├── reset_100.py        # 生成 100 条测试数据
-│   └── birthday.db         # SQLite 数据库（首次运行自动生成）
-├── frontend/               # 前端（Vue 3 + Vite）
-│   ├── src/                # 源码
-│   ├── vite.config.js      # 已配置 host / allowedHosts / /api 代理
+│   ├── launcher.py        # 桌面版入口（托盘常驻 + 自动开浏览器）
+│   ├── reset_100.py       # 生成 100 条测试数据
+│   └── birthday.db        # SQLite 数据库（首次运行自动生成）
+├── frontend/              # 前端（Vue 3 + Vite）
+│   ├── src/               # 源码
+│   ├── vite.config.js     # 已配置 host / allowedHosts / /api 代理
 │   └── package.json
-├── README.md               # 英文说明
-└── README_zh.md            # 本文件
+├── packaging/             # 打包相关资源
+│   └── 使用说明.txt        # 随绿色版分发的说明
+├── .github/workflows/
+│   └── release.yml        # push tag 自动打包并发布 Release
+├── Yearn.spec             # PyInstaller 打包配置
+├── requirements-build.txt # 打包期依赖（运行时不需要）
+├── README.md              # 英文说明
+└── README_zh.md           # 本文件
 ```
 
 ---
@@ -341,7 +363,109 @@ A：打开 **「设置」(`/settings`)** 检查：① 渠道（邮件 / Server �
 
 ---
 
-## 🔧 十、开发指引（简）
+## 🔧 十、打包为 Windows 桌面应用
+
+把整个项目冻结成一个**绿色目录**：无需 Python / Node 环境，双击即用，
+托盘常驻、自动打开浏览器、数据落在自己的 `data/` 目录里。
+
+### 10.1 三条命令搞定
+
+在**项目根目录**依次执行：
+
+```bash
+# ① 构建前端（打包会把 frontend/dist 一起打进去，不能跳过）
+cd frontend && npm install && npm run build && cd ..
+
+# ② 安装打包期依赖（与运行时依赖分开，不污染 requirements.txt）
+pip install -r requirements-build.txt
+
+# ③ 打包
+pyinstaller Yearn.spec --noconfirm
+```
+
+产物在 `dist/Yearn/`，结构如下：
+
+```
+dist/Yearn/
+├── Yearn.exe        启动程序，双击它
+├── lib/             依赖 + 前端资源（PyInstaller 生成，不用管）
+└── 使用说明.txt      随包分发的说明
+```
+
+首次运行时会自动建出 `data/`（`birthday.db` + `yearn.log`）。
+
+分发给别人时，把整个目录压成 zip（保留顶层 `Yearn/` 目录，用户解压后会得到一个
+整洁的文件夹，而不是一堆散落的文件）：
+
+```bash
+7z a Yearn-v1.0.0-windows-x64.zip ./dist/Yearn
+```
+
+> 也可以直接打 tag 推送，让 GitHub Actions 自动完成上述所有步骤，见 [10.4](#104-自动发布-github-actions)。
+
+### 10.2 为什么要用 spec 文件
+
+打包参数写在 **`Yearn.spec`** 里，而不是拼在命令行上，原因是：
+
+- 资源文件用元组写法 `("frontend/dist", "frontend/dist")`，不用区分
+  Windows 的 `;` 和 Linux/macOS 的 `:` —— **本地和 CI 行为完全一致**
+- 复杂依赖收集（`collect_all`）可以写成循环，可读性好
+
+spec 里这几个参数是**必需的**，缺一个就会运行时报错：
+
+| 参数 | 原因 |
+| --- | --- |
+| `collect_all("pydantic")` | v2 含二进制扩展 `pydantic_core` |
+| `collect_all("apscheduler")` | 通过 entry points 动态加载插件，缺 dist-info 会报找不到 executor |
+| `collect_all("uvicorn")` | protocols / loops 按名字动态 import |
+| `collect_all("pystray")` + `PIL` | 托盘图标依赖，隐藏的动态后端 |
+| `console=False` | 关键：GUI 模式，不弹黑色控制台窗口 |
+
+### 10.3 Windows 托盘版的三个坑（都已解决）
+
+代码里已经处理好了，这里记下来避免以后误改：
+
+**① 路径会失效**
+打包后 `__file__` 的层级和源码不同。处理方式是在
+`backend/app/core/config.py` 和 `backend/app/main.py` 里做运行时分支：
+
+```python
+if getattr(sys, "frozen", False):   # 打包后才为 True
+    BASE_DIR = Path(sys.executable).resolve().parent       # exe 所在目录
+    DIST = Path(sys._MEIPASS) / "frontend" / "dist"        # 资源在临时/依赖目录
+else:
+    BASE_DIR = Path(__file__).resolve().parent.parent.parent  # 开发时行为完全不变
+```
+
+所以**源码模式 `python run.py` 的行为和以前一模一样**，数据库仍是
+`backend/birthday.db`，README 里的开发流程一个字都不用改。
+
+**② 无控制台后服务会静默崩溃**
+`console=False` 的程序没有有效的 `sys.stderr`，而 uvicorn 默认日志配置里包含
+`sys.stderr`，一写就崩，且异常信息也写不出去，表现为"浏览器拒绝连接但毫无线索"。
+`backend/launcher.py` 顶部已把 stdout/stderr 重定向到 devnull，
+并给服务线程加了 `try/except` + `logging.exception` 兜底。
+
+**③ 双击多次会出现多个托盘**
+用 Windows 命名互斥体做单例锁（注意必须调用 `kernel32.GetLastError()` 判断，
+Python 的 `ctypes.get_last_error()` 在这个场景恒返回 0）。
+
+### 10.4 自动发布（GitHub Actions）
+
+仓库里的 `.github/workflows/release.yml` 会在**推送 tag** 时自动：
+构建前端 → 打包 → 组装目录 → 压成 zip → 创建 Release 并附上中文说明。
+
+```bash
+git tag -a v1.0.0 -m "Yearn v1.0.0"
+git push origin v1.0.0
+```
+
+> ⚠️ **顺序很重要**：必须先把 workflow 文件 push 到默认分支，再打 tag。
+> 如果先打 tag，那时仓库里还没有这个 workflow，这次 tag 不会触发任何构建。
+
+---
+
+## 🛠 十一、开发指引（简）
 
 - **加接口**：`services/birthday.py` 加方法 → `routers/birthday.py` 加路由 → 需要时在 `schemas/birthday.py` 加模型。
 - **加页面**：`src/views/` 建 `.vue` → `src/router/index.js` 加路由 → `App.vue` 加导航。

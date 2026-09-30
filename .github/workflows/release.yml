@@ -1,0 +1,86 @@
+name: Release
+
+# 推送 v* 标签时自动打包并发布 Release
+# 用法：git tag -a v1.0.0 -m "..." && git push origin v1.0.0
+on:
+  push:
+    tags:
+      - 'v*'
+
+# 新版 GitHub 的 GITHUB_TOKEN 默认只读，不显式授权会导致创建 Release 失败
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: 拉取代码
+        uses: actions/checkout@v4
+
+      - name: 安装 Node 并构建前端
+        run: |
+          cd frontend
+          npm ci
+          npm run build
+
+      - name: 安装 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: 安装后端依赖与打包工具
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+          pip install -r requirements-build.txt
+
+      - name: 打包绿色版
+        run: pyinstaller Yearn.spec --noconfirm
+
+      # 保留顶层 Yearn/ 目录再压缩：用户解压后直接得到一个整洁的 Yearn 文件夹，
+      # 而不是一堆散落在下载目录里的文件
+      - name: 确认产物并压缩
+        run: |
+          ls -la dist/Yearn/
+          7z a Yearn-${{ github.ref_name }}-windows-x64.zip ./dist/Yearn
+
+      - name: 发布 Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            Yearn-${{ github.ref_name }}-windows-x64.zip
+            README_zh.md
+          body: |
+            ## Yearn 岁岁念 ${{ github.ref_name }}
+
+            ### 怎么用
+
+            1. 下载下面的 `Yearn-${{ github.ref_name }}-windows-x64.zip`
+            2. **解压**到任意位置，会得到一个 `Yearn` 文件夹
+            3. 进入文件夹，双击 `Yearn.exe`，浏览器会自动打开 `http://localhost:8000`
+            4. Yearn 会在右下角系统托盘常驻，关掉浏览器后服务仍在运行
+
+            ### 文件夹里有什么
+
+            | 文件 | 说明 |
+            | --- | --- |
+            | `Yearn.exe` | 启动程序，双击它 |
+            | `lib/` | 运行依赖，不要删除或改名 |
+            | `data/` | 你的数据与日志（birthday.db、yearn.log），首次运行自动创建 |
+            | `使用说明.txt` | 离线版说明 |
+
+            ### 注意事项
+
+            - 备份或换电脑：整个 `Yearn` 文件夹一起拷走即可，数据在 `data/` 里
+            - 想退出：右键点击右下角托盘图标 → **退出**
+            - 服务在托盘常驻期间，每天 09:00 会自动检查当天生日并提醒
+            - Windows 可能提示「已保护你的电脑」，点 **更多信息 → 仍要运行** 即可
+              （个人项目未购买代码签名证书，属正常现象）
+            - 若 8000 端口被占用，程序会自动改用 8001 等后续端口
+
+            ### 源码运行
+
+            想从源码启动、或想自己打包，请查看 [README_zh.md](../../README_zh.md)
+            的「十、打包为 Windows 桌面应用」一节。

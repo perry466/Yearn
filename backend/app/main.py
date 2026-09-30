@@ -6,6 +6,7 @@ FastAPI 主入口（单服务）
 - 提醒配置（频道 / 频率 / 模板）存数据库，由网页设置页维护
 """
 import logging
+import sys
 import threading
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -154,7 +155,21 @@ def health_check():
 # 生产：检测到前端构建产物时，托管静态文件并让 / 与前端路由返回 index.html，
 #       实现「一条 uvicorn 起全栈」；健康检查仍走 /health。
 # 开发：dist 不存在时，/ 返回健康提示（前端请用 vite dev）。
-DIST = Path(__file__).resolve().parent.parent.parent / "frontend" / "dist"
+def _resource_dir() -> Path:
+    """打包进去的静态资源根目录。
+
+    - 源码运行：项目根目录（yearn/），于是 DIST = yearn/frontend/dist。
+    - 打包运行：PyInstaller 的临时解压目录 sys._MEIPASS。
+      不能再用 __file__ 往上跳三级 —— 打包后少了 backend/ 这一层，
+      会多跳一级飞到 Temp 目录，导致前端资源找不到、页面空白。
+      前端产物由打包参数 --add-data "frontend/dist;frontend/dist" 放进这里。
+    """
+    if getattr(sys, "frozen", False):
+        return Path(sys._MEIPASS)
+    return Path(__file__).resolve().parent.parent.parent
+
+
+DIST = _resource_dir() / "frontend" / "dist"
 if DIST.exists():
     from fastapi.responses import FileResponse
 

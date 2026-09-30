@@ -19,9 +19,12 @@ def find_pids_on_port(port):
     pids = []
     if sys.platform.startswith("win"):
         try:
+            # 中文 Windows 下 netstat 输出是 GBK，按 UTF-8 解码会抛 UnicodeDecodeError。
+            # 这里只解析 "TCP / LISTENING / 端口号"，忽略无法解码的字节即可。
             out = subprocess.run(
                 ["netstat", "-ano", "-p", "TCP"],
                 capture_output=True, text=True, check=False,
+                encoding="utf-8", errors="ignore",
             ).stdout
         except Exception:
             return pids
@@ -54,6 +57,7 @@ def kill_pid(pid):
         res = subprocess.run(
             ["taskkill", "/PID", str(pid), "/F", "/T"],
             capture_output=True, text=True, check=False,
+            encoding="utf-8", errors="ignore",
         )
         return res.returncode == 0
     try:

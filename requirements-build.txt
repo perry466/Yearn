@@ -1,0 +1,5 @@
+# 打包 Yearn 为 Windows 绿色版所需的额外依赖
+# 运行时不需要安装，只在执行 pyinstaller 前安装
+pyinstaller>=6.0
+pystray>=0.19
+pillow>=10.0

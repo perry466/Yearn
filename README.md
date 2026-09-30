@@ -60,6 +60,20 @@ Then open **http://localhost:8000**. Stop anytime with `python stop.py`.
 
 ---
 
+## 📦 Download the portable build (Windows)
+
+Don't want to set up Python / Node? Grab `Yearn-xxx-windows-x64.zip` from
+**[Releases](https://github.com/perry466/Yearn/releases)**, then **unzip → double-click `Yearn.exe`**.
+No command line involved.
+
+- **No console window** — the app lives in the **system tray** (closing the browser does not stop it)
+- Data lives in `data/` inside the unzipped folder — copy the whole folder to back it up
+- To quit: **right-click the tray icon → Quit**
+
+> To build this yourself, see [10. Packaging as a Windows desktop app](#10-packaging-as-a-windows-desktop-app).
+
+---
+
 ## 📑 Table of Contents
 
 > 📱 **New here?** Start with the **[Usage Guide (English)](./docs/USAGE.md)** · **[使用指南（中文）](./docs/USAGE_zh.md)** — screenshots + how to use every page.
@@ -73,7 +87,8 @@ Then open **http://localhost:8000**. Stop anytime with `python stop.py`.
 - [💾 7. Data Model](#7-data-model)
 - [🔌 8. API Reference](#8-api-reference)
 - [❓ 9. FAQ](#9-faq)
-- [🔧 10. Development](#10-development)
+- [🔧 10. Packaging as a Windows desktop app](#10-packaging-as-a-windows-desktop-app)
+- [🛠 11. Development](#11-development)
 
 ---
 
@@ -102,12 +117,19 @@ yearn/
 │   │   ├── scheduler.py    # daily reminder scheduler
 │   │   └── main.py         # entry point
 │   ├── requirements.txt
+│   ├── launcher.py         # desktop entry point (tray + auto-open browser)
 │   ├── reset_100.py        # generate 100 test records
 │   └── birthday.db         # SQLite DB (auto-created on first run)
 ├── frontend/               # Frontend (Vue 3 + Vite)
 │   ├── src/
 │   ├── vite.config.js      # host / allowedHosts / /api proxy configured
 │   └── package.json
+├── packaging/              # packaging assets
+│   └── 使用说明.txt         # readme shipped inside the portable build
+├── .github/workflows/
+│   └── release.yml         # tag push → build & publish Release
+├── Yearn.spec              # PyInstaller spec
+├── requirements-build.txt  # build-time deps (not needed at runtime)
 ├── README.md               # this file (English)
 └── README_zh.md            # Chinese guide
 ```
@@ -351,7 +373,109 @@ automatically with the app, so no separate process is required.
 
 ---
 
-## 🔧 10. Development
+## 🔧 10. Packaging as a Windows desktop app
+
+Freeze the whole project into a **portable folder**: no Python / Node needed,
+tray-resident, opens the browser automatically, data in its own `data/` directory.
+
+### 10.1 Three commands
+
+From the **project root**:
+
+```bash
+# 1) Build the frontend (it gets bundled; cannot be skipped)
+cd frontend && npm install && npm run build && cd ..
+
+# 2) Install build-time deps (kept separate from runtime requirements.txt)
+pip install -r requirements-build.txt
+
+# 3) Package
+pyinstaller Yearn.spec --noconfirm
+```
+
+Output lives in `dist/Yearn/`:
+
+```
+dist/Yearn/
+├── Yearn.exe       launcher — double-click it
+├── lib/            dependencies + frontend assets (generated, don't touch)
+└── 使用说明.txt     bundled readme (Chinese)
+```
+
+On first run it creates `data/` holding `birthday.db` and `yearn.log`.
+To distribute, zip the whole folder. Keep the top-level `Yearn/` directory so users
+unzip into one tidy folder instead of a pile of loose files:
+
+```bash
+7z a Yearn-v1.0.0-windows-x64.zip ./dist/Yearn
+```
+
+> Or just push a tag and let GitHub Actions do all of the above — see [10.4](#104-automated-release-github-actions).
+
+### 10.2 Why a spec file
+
+Build settings live in **`Yearn.spec`** rather than a long command line, because:
+
+- Data files use tuple syntax `("frontend/dist", "frontend/dist")`, so there is no need to
+  juggle `;` on Windows vs `:` on Linux/macOS — **local and CI builds behave identically**
+- Dependency collection loops (`collect_all`) stay readable
+
+These options are **mandatory** — omitting any one causes runtime errors:
+
+| Option | Why |
+| --- | --- |
+| `collect_all("pydantic")` | v2 ships the binary extension `pydantic_core` |
+| `collect_all("apscheduler")` | loads plugins via entry points; missing dist-info breaks it |
+| `collect_all("uvicorn")` | protocols / loops are imported by name at runtime |
+| `collect_all("pystray")` + `PIL` | tray icon deps with hidden dynamic backends |
+| `console=False` | essential: GUI subsystem, no console window |
+
+### 10.3 Three Windows tray pitfalls (already handled)
+
+Documented here so nobody "fixes" them away later.
+
+**① Paths break after packaging**
+`__file__` sits at a different depth once frozen. Handled with a runtime branch in
+`backend/app/core/config.py` and `backend/app/main.py`:
+
+```python
+if getattr(sys, "frozen", False):   # only True when packaged
+    BASE_DIR = Path(sys.executable).resolve().parent      # folder holding the exe
+    DIST = Path(sys._MEIPASS) / "frontend" / "dist"       # assets live in the bundle
+else:
+    BASE_DIR = Path(__file__).resolve().parent.parent.parent  # dev behaviour unchanged
+```
+
+So **`python run.py` behaves exactly as before** — the database is still
+`backend/birthday.db` and nothing in this README's dev flow changes.
+
+**② The server crashes silently without a console**
+A `console=False` app has no valid `sys.stderr`, yet uvicorn's default logging config
+references `sys.stderr`. Writing to it crashes the server thread, and the traceback goes
+nowhere — you just see "connection refused" with zero clues. `backend/launcher.py` now
+redirects stdout/stderr to devnull and wraps the server thread in
+`try/except` + `logging.exception`.
+
+**③ Double-clicking twice spawns two trays**
+A Windows named mutex provides single-instance locking. Note you must read
+`kernel32.GetLastError()` — Python's `ctypes.get_last_error()` always returns 0 here.
+
+### 10.4 Automated release (GitHub Actions)
+
+`.github/workflows/release.yml` triggers on **tag push** and runs:
+build frontend → package → assemble folder → zip → create the Release with Chinese notes.
+
+```bash
+git tag -a v1.0.0 -m "Yearn v1.0.0"
+git push origin v1.0.0
+```
+
+> ⚠️ **Order matters**: push the workflow to the default branch *before* creating the tag.
+> A tag pushed while the workflow file is not yet in the repo triggers nothing.
+
+---
+
+## 🛠 11. Development
 
 - **Add an endpoint**: method in `services/birthday.py` → route in
   `routers/birthday.py` → schema in `schemas/birthday.py` if needed.

@@ -11,6 +11,15 @@ ENV/
 *.egg-info/
 dist/
 build/
+*.spec.bak
+
+# 分发产物（绿色版 zip / 安装包，只在 GitHub Release 里作为附件）
+*.zip
+*.7z
+*.rar
+*.exe
+*.msi
+Yearn-*-windows-*.zip
 
 # Node
 node_modules/
@@ -34,6 +43,9 @@ desktop.ini
 
 # Dev context (local only, not for GitHub)
 dev-context/
+
+# WorkBuddy local workspace (AI 工作记忆，不公开)
+.workbuddy/
 
 # Edge headless screenshot artifacts (local debug only)
 docs/screenshots/.edge-*/
