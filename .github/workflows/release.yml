@@ -15,6 +15,13 @@ jobs:
   build-windows:
     runs-on: windows-latest
 
+    # 关键：Windows runner 默认用 PowerShell，而 ls -la / cp 等是 bash 语法
+    # （PowerShell 的 Get-ChildItem 没有 -l、-a 参数，会直接报错退出）
+    # 统一用 bash 后，本地脚本与 CI 的写法完全一致
+    defaults:
+      run:
+        shell: bash
+
     steps:
       - name: 拉取代码
         uses: actions/checkout@v4
@@ -39,12 +46,12 @@ jobs:
       - name: 打包绿色版
         run: pyinstaller Yearn.spec --noconfirm
 
-      # 保留顶层 Yearn/ 目录再压缩：用户解压后直接得到一个整洁的 Yearn 文件夹，
-      # 而不是一堆散落在下载目录里的文件
+      # 用 Python 标准库打包而不是 7z：减少对 runner 预装软件的依赖，
+      # 且 root_dir + base_dir 的写法能保证 zip 顶层是整洁的 Yearn/ 目录
       - name: 确认产物并压缩
         run: |
           ls -la dist/Yearn/
-          7z a Yearn-${{ github.ref_name }}-windows-x64.zip ./dist/Yearn
+          python -c "import shutil, os; p = shutil.make_archive('Yearn-${{ github.ref_name }}-windows-x64', 'zip', root_dir='dist', base_dir='Yearn'); print('打包完成:', p, round(os.path.getsize(p)/1048576, 1), 'MB')"
 
       - name: 发布 Release
         uses: softprops/action-gh-release@v2

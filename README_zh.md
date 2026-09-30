@@ -394,11 +394,11 @@ dist/Yearn/
 
 首次运行时会自动建出 `data/`（`birthday.db` + `yearn.log`）。
 
-分发给别人时，把整个目录压成 zip（保留顶层 `Yearn/` 目录，用户解压后会得到一个
-整洁的文件夹，而不是一堆散落的文件）：
+分发给别人时，把整个目录压成 zip。保留顶层 `Yearn/` 目录，用户解压后会得到一个
+整洁的文件夹，而不是一堆散落的文件 —— 用 Python 标准库即可，不必装 7-Zip：
 
 ```bash
-7z a Yearn-v1.0.0-windows-x64.zip ./dist/Yearn
+python -c "import shutil; shutil.make_archive('Yearn-v1.0.0-windows-x64', 'zip', root_dir='dist', base_dir='Yearn')"
 ```
 
 > 也可以直接打 tag 推送，让 GitHub Actions 自动完成上述所有步骤，见 [10.4](#104-自动发布-github-actions)。
