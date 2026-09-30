@@ -403,12 +403,15 @@ dist/Yearn/
 ```
 
 On first run it creates `data/` holding `birthday.db` and `yearn.log`.
-To distribute, zip the whole folder. Keep the top-level `Yearn/` directory so users unzip
-into one tidy folder instead of a pile of loose files — Python's stdlib is enough, no 7-Zip needed:
+To distribute, zip it (the repo ships a small script, so no 7-Zip needed):
 
 ```bash
-python -c "import shutil; shutil.make_archive('Yearn-v1.0.0-windows-x64', 'zip', root_dir='dist', base_dir='Yearn')"
+python scripts/make_release_zip.py v1.0.0
+# → ./Yearn-v1.0.0-windows-x64.zip
 ```
+
+The script keeps the top-level `Yearn/` directory, so users unzip into one tidy folder
+instead of a pile of loose files. CI calls the exact same script, so both paths behave identically.
 
 > Or just push a tag and let GitHub Actions do all of the above — see [10.4](#104-automated-release-github-actions).
 

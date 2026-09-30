@@ -46,12 +46,15 @@ jobs:
       - name: 打包绿色版
         run: pyinstaller Yearn.spec --noconfirm
 
-      # 用 Python 标准库打包而不是 7z：减少对 runner 预装软件的依赖，
-      # 且 root_dir + base_dir 的写法能保证 zip 顶层是整洁的 Yearn/ 目录
+      # 用 Python 标准库压缩而不是外部工具：不依赖 runner 预装什么。
+      # root_dir + base_dir 保证 zip 内顶层是单个整洁的 Yearn 目录，
+      # 用户解压后得到一个文件夹，而不是散落一地的文件。
+      # ls 失败不中断脚本，好让 python 脚本输出真正的诊断信息
       - name: 确认产物并压缩
         run: |
-          ls -la dist/Yearn/
-          python -c "import shutil, os; p = shutil.make_archive('Yearn-${{ github.ref_name }}-windows-x64', 'zip', root_dir='dist', base_dir='Yearn'); print('打包完成:', p, round(os.path.getsize(p)/1048576, 1), 'MB')"
+          ls -la dist/ || echo "（dist 不存在，说明上一步打包失败）"
+          ls -la dist/Yearn/ || echo "（dist/Yearn 不存在，交给脚本诊断）"
+          python scripts/make_release_zip.py "${{ github.ref_name }}"
 
       - name: 发布 Release
         uses: softprops/action-gh-release@v2
