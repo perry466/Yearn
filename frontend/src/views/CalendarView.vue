@@ -1,7 +1,7 @@
 <template>
   <div class="space-y-6">
     <!-- 头部：年月切换 -->
-    <div class="flex items-center justify-between">
+    <div class="flex items-center justify-between bg-head">
       <div class="flex items-center gap-3">
         <button
           @click="prevMonth"
@@ -52,7 +52,7 @@
         class="min-h-[80px] sm:min-h-[100px] rounded-xl p-2 border transition-all"
         :class="isToday(day)
           ? 'bg-primary-50 dark:bg-primary-900/20 border-primary-200 dark:border-primary-700'
-          : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700 hover:border-primary-200 dark:hover:border-primary-700'"
+          : 'ui-panel border-gray-100 dark:border-gray-700 hover:border-primary-200 dark:hover:border-primary-700'"
         @click="selectDate(day)"
       >
         <div
@@ -82,7 +82,7 @@
     </div>
 
     <!-- 当月生日列表 -->
-    <div v-if="monthBirthdays.length > 0" class="bg-white dark:bg-gray-800 rounded-2xl p-4 border border-gray-100 dark:border-gray-700">
+    <div v-if="monthBirthdays.length > 0" class="ui-panel rounded-2xl p-4 border border-gray-100 dark:border-gray-700">
       <h3 class="font-bold text-gray-800 dark:text-white mb-3">
         📅 {{ currentYear }} {{ lang === 'zh' ? '年' : '' }} {{ currentMonth + 1 }} {{ lang === 'zh' ? '月' : '' }} — {{ monthBirthdays.length }} {{ lang === 'zh' ? '人' : 'people' }}
       </h3>

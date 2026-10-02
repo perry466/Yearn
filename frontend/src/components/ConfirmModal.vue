@@ -4,7 +4,7 @@
       <div v-if="show" class="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="$emit('cancel')" />
 
-        <div class="relative bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-sm z-10 overflow-hidden">
+        <div class="relative ui-panel rounded-2xl shadow-xl w-full max-w-sm z-10 overflow-hidden">
           <div class="bg-red-50 dark:bg-red-900/20 px-6 py-4 flex items-center gap-3">
             <div class="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/40 flex items-center justify-center text-xl">
               🗑️

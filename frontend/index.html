@@ -4,6 +4,55 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>🎂 Yearn · 岁岁念</title>
+    <script>
+      // 首帧前应用主题，避免闪烁（FOUC）。此处逻辑与 src/composables/useTheme.js 保持一致。
+      (function () {
+        try {
+          var root = document.documentElement;
+          var state = null;
+          try { state = JSON.parse(localStorage.getItem('yearn.theme') || 'null'); } catch (e) { state = null; }
+          var legacy = localStorage.getItem('theme');
+          var mode = (state && state.mode) || (legacy === 'dark' ? 'dark' : legacy === 'light' ? 'light' : 'system');
+          var dark = mode === 'dark' || (mode === 'system' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          if (dark) root.classList.add('dark');
+          root.classList.add('accent-' + ((state && state.accent) || 'orange'));
+          var uiAlpha = Math.min(1, Math.max(0.4, Number(state && state.uiAlpha) || 1));
+          root.style.setProperty('--ui-alpha', String(uiAlpha));
+          var bg = state && state.background && state.background[dark ? 'dark' : 'light'];
+          if (bg && bg.type && bg.type !== 'none') {
+            root.classList.add('has-custom-bg');
+            var blur = bg.blur || 0;
+            if (!(state && state.v >= 2)) blur = 0; // 旧数据可能残留「虚化」值，忽略之
+            if (blur > 0) {
+              root.style.setProperty('--bg-filter', 'blur(' + blur + 'px)');
+              root.style.setProperty('--bg-scale', '1.08');
+            } else {
+              root.style.setProperty('--bg-scale', '1');
+            }
+            if (bg.type === 'image' && bg.fit === 'contain') root.style.setProperty('--bg-size', 'contain');
+            root.style.setProperty('--bg-dim-alpha', String(bg.dim != null ? bg.dim : 0.15));
+            if (bg.type === 'color') {
+              root.style.setProperty('--bg-color', bg.color || 'transparent');
+              root.style.setProperty('--bg-image', 'none');
+            } else if (bg.type === 'gradient') {
+              root.style.setProperty('--bg-color', bg.from || '#ffffff');
+              root.style.setProperty('--bg-image', 'linear-gradient(' + (bg.angle || 135) + 'deg, ' + (bg.from || '#ffffff') + ', ' + (bg.to || '#dddddd') + ')');
+            } else if (bg.type === 'image') {
+              var img = bg.stored ? (bg.ph || '') : (bg.url || '');
+              if (img) {
+                root.style.setProperty('--bg-color', '#f3f4f6');
+                root.style.setProperty('--bg-image', 'url("' + img + '")');
+                // 本地上传：首帧只有低清占位图，先轻微虚化过渡；原图由 JS 载入后替换
+                if (bg.stored && !blur) {
+                  root.style.setProperty('--bg-filter', 'blur(28px)');
+                  root.style.setProperty('--bg-scale', '1.08');
+                }
+              }
+            }
+          }
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body class="bg-gray-50 dark:bg-gray-900 transition-colors">
     <div id="app"></div>

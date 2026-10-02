@@ -6,7 +6,7 @@
         type="button"
         @click="drillTotal"
         :title="t('stats.clickHint')"
-        class="text-left bg-white dark:bg-gray-800 rounded-2xl p-5 border border-gray-100 dark:border-gray-700 cursor-pointer transition-all hover:shadow-md hover:-translate-y-0.5 hover:border-primary-200 dark:hover:border-primary-800"
+        class="text-left ui-panel rounded-2xl p-5 border border-gray-100 dark:border-gray-700 cursor-pointer transition-all hover:shadow-md hover:-translate-y-0.5 hover:border-primary-200 dark:hover:border-primary-800"
       >
         <div class="text-3xl mb-2">👥</div>
         <div class="text-2xl font-bold text-gray-800 dark:text-white">{{ stats.total }}</div>
@@ -16,7 +16,7 @@
         type="button"
         @click="drillUpcoming30"
         :title="t('stats.clickHint')"
-        class="text-left bg-white dark:bg-gray-800 rounded-2xl p-5 border border-gray-100 dark:border-gray-700 cursor-pointer transition-all hover:shadow-md hover:-translate-y-0.5 hover:border-primary-200 dark:hover:border-primary-800"
+        class="text-left ui-panel rounded-2xl p-5 border border-gray-100 dark:border-gray-700 cursor-pointer transition-all hover:shadow-md hover:-translate-y-0.5 hover:border-primary-200 dark:hover:border-primary-800"
       >
         <div class="text-3xl mb-2">🎂</div>
         <div class="text-2xl font-bold text-primary-500">{{ stats.upcoming_count }}</div>
@@ -26,7 +26,7 @@
         type="button"
         @click="drillWeek"
         :title="t('stats.clickHint')"
-        class="text-left bg-white dark:bg-gray-800 rounded-2xl p-5 border border-gray-100 dark:border-gray-700 cursor-pointer transition-all hover:shadow-md hover:-translate-y-0.5 hover:border-primary-200 dark:hover:border-primary-800"
+        class="text-left ui-panel rounded-2xl p-5 border border-gray-100 dark:border-gray-700 cursor-pointer transition-all hover:shadow-md hover:-translate-y-0.5 hover:border-primary-200 dark:hover:border-primary-800"
       >
         <div class="text-3xl mb-2">📅</div>
         <div class="text-2xl font-bold text-green-500">{{ upcoming7 }}</div>
@@ -36,7 +36,7 @@
         type="button"
         @click="drillToday"
         :title="t('stats.clickHint')"
-        class="text-left bg-white dark:bg-gray-800 rounded-2xl p-5 border border-gray-100 dark:border-gray-700 cursor-pointer transition-all hover:shadow-md hover:-translate-y-0.5 hover:border-primary-200 dark:hover:border-primary-800"
+        class="text-left ui-panel rounded-2xl p-5 border border-gray-100 dark:border-gray-700 cursor-pointer transition-all hover:shadow-md hover:-translate-y-0.5 hover:border-primary-200 dark:hover:border-primary-800"
       >
         <div class="text-3xl mb-2">🎁</div>
         <div class="text-2xl font-bold text-amber-500">{{ upcomingToday }}</div>
@@ -45,7 +45,7 @@
     </div>
 
     <!-- 分类统计（点击条形可下钻） -->
-    <div class="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-100 dark:border-gray-700">
+    <div class="ui-panel rounded-2xl p-6 border border-gray-100 dark:border-gray-700">
       <h3 class="text-lg font-bold text-gray-800 dark:text-white mb-4">📂 {{ t('stats.byCategory') }}</h3>
 
       <div v-if="Object.keys(stats.categories).length > 0" class="space-y-3">
@@ -78,7 +78,7 @@
     </div>
 
     <!-- 分类饼图（点击图例可下钻） -->
-    <div class="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-100 dark:border-gray-700">
+    <div class="ui-panel rounded-2xl p-6 border border-gray-100 dark:border-gray-700">
       <h3 class="text-lg font-bold text-gray-800 dark:text-white mb-4">📊 {{ lang === 'zh' ? '分布概览' : 'Distribution' }}</h3>
 
       <div v-if="Object.keys(stats.categories).length > 0" class="flex flex-col sm:flex-row items-center gap-6">

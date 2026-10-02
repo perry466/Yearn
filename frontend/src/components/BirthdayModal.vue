@@ -4,7 +4,7 @@
       <div v-if="show" class="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="$emit('close')" />
 
-        <div class="relative flex flex-col bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md z-10 max-h-[90vh]">
+        <div class="relative flex flex-col ui-panel rounded-2xl shadow-2xl w-full max-w-md z-10 max-h-[90vh]">
 
           <!-- Header — 固定在顶部 -->
           <div class="flex-shrink-0 flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-700 rounded-t-2xl">

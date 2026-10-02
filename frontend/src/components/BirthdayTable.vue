@@ -1,5 +1,5 @@
 <template>
-  <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+  <div class="ui-panel rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
     <table class="w-full">
       <thead>
         <tr class="border-b border-gray-100 dark:border-gray-700">

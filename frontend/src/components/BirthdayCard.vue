@@ -1,6 +1,6 @@
 <template>
   <div
-    class="group relative bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-sm border transition-all cursor-pointer"
+    class="group relative ui-panel rounded-2xl p-5 shadow-sm border transition-all cursor-pointer"
     :class="selectMode
       ? selected
         ? 'border-primary-400 dark:border-primary-600 shadow-md ring-2 ring-primary-200 dark:ring-primary-800'

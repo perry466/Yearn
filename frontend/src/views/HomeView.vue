@@ -16,7 +16,7 @@
         </div>
 
         <!-- 搜索 -->
-        <div class="bg-white dark:bg-gray-800 rounded-2xl p-4 border border-gray-100 dark:border-gray-700">
+        <div class="ui-panel rounded-2xl p-4 border border-gray-100 dark:border-gray-700">
           <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">{{ t('common.search') }}</label>
           <div class="relative">
             <input
@@ -30,7 +30,7 @@
         </div>
 
         <!-- 视图切换 -->
-        <div class="bg-white dark:bg-gray-800 rounded-2xl p-4 border border-gray-100 dark:border-gray-700">
+        <div class="ui-panel rounded-2xl p-4 border border-gray-100 dark:border-gray-700">
           <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">{{ t('common.search') === 'Search' ? 'View' : '视图' }}</label>
           <div class="flex items-center bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
             <button
@@ -55,7 +55,7 @@
         </div>
 
         <!-- 操作按钮组 -->
-        <div class="bg-white dark:bg-gray-800 rounded-2xl p-4 border border-gray-100 dark:border-gray-700 space-y-2">
+        <div class="ui-panel rounded-2xl p-4 border border-gray-100 dark:border-gray-700 space-y-2">
           <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">{{ lang === 'zh' ? '操作' : 'Actions' }}</label>
 
           <!-- 选择按钮 -->
@@ -135,7 +135,7 @@
             <div
               v-for="b in upcoming.slice(0, 10)"
               :key="b.id"
-              class="upcoming-card flex-shrink-0 bg-white dark:bg-gray-800 rounded-xl px-4 py-3 shadow-sm border border-primary-100 dark:border-primary-800/30 min-w-[140px]"
+              class="upcoming-card flex-shrink-0 ui-panel rounded-xl px-4 py-3 shadow-sm border border-primary-100 dark:border-primary-800/30 min-w-[140px]"
             >
               <div class="text-xs text-primary-500 font-bold mb-1">
                 {{ b.days_until === 0 ? t('home.today') : tf('home.daysUntil', { days: b.days_until }) }}

@@ -1,12 +1,212 @@
 <template>
   <div class="space-y-6 max-w-3xl mx-auto">
-    <div>
+    <div class="bg-head inline-block">
       <h2 class="text-2xl font-bold text-gray-800 dark:text-white">{{ t('settings.title') }}</h2>
       <p class="text-sm text-gray-400 mt-1">{{ t('settings.subtitle') }}</p>
     </div>
 
+    <!-- 外观 -->
+    <section class="ui-panel rounded-2xl p-6 border border-gray-100 dark:border-gray-700">
+      <h3 class="text-lg font-bold text-gray-800 dark:text-white mb-1">🎨 {{ t('appearance.title') }}</h3>
+      <p class="text-sm text-gray-400 mb-4">{{ t('appearance.desc') }}</p>
+
+      <!-- 颜色模式 -->
+      <div class="mb-5">
+        <label class="text-sm text-gray-500">{{ t('appearance.mode') }}</label>
+        <div class="mt-2 inline-flex rounded-xl border border-gray-200 dark:border-gray-600 p-1 bg-gray-50 dark:bg-gray-700/50">
+          <button
+            v-for="m in modeOptions"
+            :key="m.value"
+            type="button"
+            @click="state.mode = m.value"
+            class="px-4 py-1.5 rounded-lg text-sm font-medium transition-colors"
+            :class="state.mode === m.value
+              ? 'bg-primary-500 text-white'
+              : 'text-gray-600 dark:text-gray-300 hover:bg-white dark:hover:bg-gray-700'"
+          >
+            {{ m.label }}
+          </button>
+        </div>
+      </div>
+
+      <!-- 界面不透明度 -->
+      <div class="mb-5">
+        <label class="text-sm text-gray-500">{{ t('appearance.uiOpacity') }}</label>
+        <div class="mt-2 flex items-center gap-3">
+          <input
+            type="range"
+            min="40"
+            max="100"
+            step="5"
+            :value="Math.round(state.uiAlpha * 100)"
+            @input="state.uiAlpha = +$event.target.value / 100"
+            class="w-48 accent-primary-500"
+          />
+          <span class="text-sm text-gray-600 dark:text-gray-300 tabular-nums">
+            {{ Math.round(state.uiAlpha * 100) }}%
+          </span>
+        </div>
+        <p class="text-xs text-gray-400 mt-1">{{ t('appearance.uiOpacityHint') }}</p>
+      </div>
+
+      <!-- 主题色 -->
+      <div class="mb-5">
+        <label class="text-sm text-gray-500">{{ t('appearance.accent') }}</label>
+        <div class="mt-2 flex flex-wrap gap-2.5">
+          <button
+            v-for="a in accentPresets"
+            :key="a.id"
+            type="button"
+            @click="setAccent(a.id)"
+            class="flex items-center gap-2 pl-1.5 pr-3 py-1.5 rounded-full border transition-colors"
+            :class="state.accent === a.id
+              ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/30'
+              : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'"
+            :title="a.name[lang]"
+          >
+            <span
+              class="w-6 h-6 rounded-full ring-2 ring-white dark:ring-gray-800 shadow"
+              :style="{ backgroundColor: a.color }"
+            ></span>
+            <span
+              class="text-sm"
+              :class="state.accent === a.id ? 'text-primary-600 dark:text-primary-400 font-medium' : 'text-gray-600 dark:text-gray-300'"
+            >{{ a.name[lang] }}</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 背景 -->
+      <div>
+        <label class="text-sm text-gray-500">{{ t('appearance.bg') }}</label>
+        <div class="mt-2 flex items-center gap-2 flex-wrap">
+          <div class="inline-flex rounded-xl border border-gray-200 dark:border-gray-600 p-1 bg-gray-50 dark:bg-gray-700/50">
+            <button
+              v-for="bt in bgTypeOptions"
+              :key="bt.value"
+              type="button"
+              @click="setBgType(bt.value)"
+              class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
+              :class="currentBg.type === bt.value
+                ? 'bg-primary-500 text-white'
+                : 'text-gray-600 dark:text-gray-300 hover:bg-white dark:hover:bg-gray-700'"
+            >
+              {{ bt.label }}
+            </button>
+          </div>
+
+          <!-- 编辑哪个模式的背景 -->
+          <div class="inline-flex rounded-xl border border-gray-200 dark:border-gray-600 p-1 bg-gray-50 dark:bg-gray-700/50 sm:ml-auto">
+            <button
+              v-for="em in editModeOptions"
+              :key="em.value"
+              type="button"
+              @click="editingMode = em.value"
+              class="px-3 py-1.5 rounded-lg text-sm transition-colors"
+              :class="editingMode === em.value
+                ? 'bg-primary-500 text-white font-medium'
+                : 'text-gray-600 dark:text-gray-300 hover:bg-white dark:hover:bg-gray-700'"
+            >
+              {{ em.label }}
+            </button>
+          </div>
+        </div>
+
+        <!-- 纯色 -->
+        <div v-if="currentBg.type === 'color'" class="mt-4 flex items-center gap-3">
+          <input type="color" v-model="currentBg.color" class="w-10 h-10 rounded-lg border border-gray-200 dark:border-gray-600 bg-transparent cursor-pointer" />
+          <input type="text" v-model="currentBg.color" class="w-32 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-white text-sm font-mono" />
+        </div>
+
+        <!-- 渐变 -->
+        <div v-else-if="currentBg.type === 'gradient'" class="mt-4 space-y-4">
+          <div>
+            <div class="text-xs text-gray-400 mb-2">{{ t('appearance.bgPreset') }}</div>
+            <div class="flex flex-wrap gap-2.5">
+              <button
+                v-for="g in gradientPresets"
+                :key="g.id"
+                type="button"
+                @click="applyGradient(g)"
+                class="w-16 h-11 rounded-lg border-2 transition-all"
+                :class="currentBg.from === g.from && currentBg.to === g.to && currentBg.angle === g.angle
+                  ? 'border-primary-500 scale-105'
+                  : 'border-transparent hover:scale-105'"
+                :style="{ backgroundImage: gradientCss(g) }"
+                :title="g.name[lang]"
+              ></button>
+            </div>
+          </div>
+          <div class="flex items-center gap-3 flex-wrap">
+            <label class="text-sm text-gray-500">{{ t('appearance.bgFrom') }}</label>
+            <input type="color" v-model="currentBg.from" class="w-9 h-9 rounded-lg border border-gray-200 dark:border-gray-600 bg-transparent cursor-pointer" />
+            <label class="text-sm text-gray-500 ml-2">{{ t('appearance.bgTo') }}</label>
+            <input type="color" v-model="currentBg.to" class="w-9 h-9 rounded-lg border border-gray-200 dark:border-gray-600 bg-transparent cursor-pointer" />
+            <label class="text-sm text-gray-500 ml-2">{{ t('appearance.bgAngle') }}</label>
+            <input type="range" min="0" max="360" v-model.number="currentBg.angle" class="flex-1 min-w-[120px] accent-primary-500" />
+            <span class="text-xs text-gray-400 w-10 text-right">{{ currentBg.angle }}°</span>
+          </div>
+        </div>
+
+        <!-- 图片 -->
+        <div v-else-if="currentBg.type === 'image'" class="mt-4 space-y-3">
+          <div class="flex items-center gap-2 flex-wrap">
+            <input
+              type="text"
+              :value="currentBg.url"
+              @input="onUrlInput"
+              :placeholder="t('appearance.bgUrlPlaceholder')"
+              class="flex-1 min-w-[200px] px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-white text-sm"
+            />
+            <label class="px-4 py-2 rounded-lg border border-primary-500 text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/30 text-sm font-medium cursor-pointer transition-colors whitespace-nowrap">
+              {{ t('appearance.upload') }}
+              <input type="file" accept="image/*" class="hidden" @change="onUpload" />
+            </label>
+          </div>
+          <div v-if="currentBg.stored" class="text-xs text-emerald-600 dark:text-emerald-400">
+            {{ t('appearance.uploadedHint') }}
+          </div>
+          <div v-if="uploadError" class="text-xs text-red-500">{{ uploadError }}</div>
+          <div class="flex items-center gap-2">
+            <label class="text-sm text-gray-500 w-14">{{ t('appearance.bgFit') }}</label>
+            <div class="inline-flex rounded-lg border border-gray-200 dark:border-gray-600 p-1 bg-gray-50 dark:bg-gray-700/50">
+              <button
+                v-for="ft in fitOptions"
+                :key="ft.value"
+                type="button"
+                @click="currentBg.fit = ft.value"
+                class="px-3 py-1 rounded-md text-sm transition-colors"
+                :class="currentBg.fit === ft.value
+                  ? 'bg-primary-500 text-white font-medium'
+                  : 'text-gray-600 dark:text-gray-300 hover:bg-white dark:hover:bg-gray-700'"
+              >
+                {{ ft.label }}
+              </button>
+            </div>
+          </div>
+          <div v-if="bgInfo" class="text-xs" :class="bgWarn ? 'text-amber-600 dark:text-amber-400' : 'text-gray-400'">
+            {{ bgInfo }}
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div class="flex items-center gap-2">
+              <label class="text-sm text-gray-500 w-14">{{ t('appearance.bgBlur') }}</label>
+              <input type="range" min="0" max="30" v-model.number="currentBg.blur" class="flex-1 accent-primary-500" />
+              <span class="text-xs text-gray-400 w-10 text-right">{{ currentBg.blur }}px</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <label class="text-sm text-gray-500 w-14">{{ t('appearance.bgDim') }}</label>
+              <input type="range" min="0" max="90" :value="Math.round(currentBg.dim * 100)" @input="currentBg.dim = $event.target.value / 100" class="flex-1 accent-primary-500" />
+              <span class="text-xs text-gray-400 w-10 text-right">{{ Math.round(currentBg.dim * 100) }}%</span>
+            </div>
+          </div>
+        </div>
+
+        <p class="text-xs text-gray-400 mt-3">{{ t('appearance.bgTip') }}</p>
+      </div>
+    </section>
+
     <!-- 提醒频率 -->
-    <section class="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-100 dark:border-gray-700">
+    <section class="ui-panel rounded-2xl p-6 border border-gray-100 dark:border-gray-700">
       <h3 class="text-lg font-bold text-gray-800 dark:text-white mb-1">🔔 {{ t('settings.frequency') }}</h3>
       <p class="text-sm text-gray-400 mb-4">{{ t('settings.frequencyDesc') }}</p>
       <div class="flex flex-wrap gap-2">
@@ -35,7 +235,7 @@
     </section>
 
     <!-- Server酱 -->
-    <section class="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-100 dark:border-gray-700">
+    <section class="ui-panel rounded-2xl p-6 border border-gray-100 dark:border-gray-700">
       <div class="flex items-center justify-between mb-1">
         <h3 class="text-lg font-bold text-gray-800 dark:text-white">🔔 {{ t('settings.serverchan') }}</h3>
         <button
@@ -63,7 +263,7 @@
     </section>
 
     <!-- 邮件 -->
-    <section class="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-100 dark:border-gray-700">
+    <section class="ui-panel rounded-2xl p-6 border border-gray-100 dark:border-gray-700">
       <div class="flex items-center justify-between mb-1">
         <h3 class="text-lg font-bold text-gray-800 dark:text-white">📧 {{ t('settings.email') }}</h3>
         <button
@@ -114,7 +314,7 @@
     </section>
 
     <!-- 消息模板 -->
-    <section class="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-100 dark:border-gray-700">
+    <section class="ui-panel rounded-2xl p-6 border border-gray-100 dark:border-gray-700">
       <h3 class="text-lg font-bold text-gray-800 dark:text-white mb-1">📝 {{ t('settings.template') }}</h3>
       <p class="text-sm text-gray-400 mb-2">{{ t('settings.templateDesc') }}</p>
       <div class="flex flex-wrap gap-1.5 mb-3">
@@ -155,7 +355,7 @@
     <!-- 测试结果 -->
     <div
       v-if="testResult"
-      class="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-100 dark:border-gray-700"
+      class="ui-panel rounded-2xl p-6 border border-gray-100 dark:border-gray-700"
     >
       <h3 class="text-lg font-bold text-gray-800 dark:text-white mb-3">{{ t('settings.testResult') }}</h3>
       <div class="flex items-center gap-8">
@@ -178,12 +378,18 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useApi } from '../composables/useApi'
 import { useI18n } from '../composables/useI18n'
+import { useTheme } from '../composables/useTheme'
+import { ACCENT_PRESETS, GRADIENT_PRESETS, gradientCss } from '../theme/presets'
 
-const { t, lang } = useI18n()
+const { t, tf, lang } = useI18n()
 const { getSettings, updateSettings, testReminder } = useApi()
+const { state, setAccent, saveNow, resolveBgUrl, setImageFile, setImageUrl } = useTheme()
+
+const accentPresets = ACCENT_PRESETS
+const gradientPresets = GRADIENT_PRESETS
 
 const PRESET = [0, 1, 3, 7, 15, 30]
 
@@ -207,6 +413,125 @@ const testing = ref(false)
 const message = ref('')
 const messageType = ref('ok')
 const testResult = ref(null)
+
+// —— 外观设置（写入 localStorage，改即生效、无需点保存）——
+const editingMode = ref('light')
+const uploadError = ref('')
+const currentBg = computed(() => state.background[editingMode.value])
+
+// 背景图清晰度诊断：算出「铺满/完整」实际需要把图放大多少倍
+const bgInfo = ref('')
+const bgWarn = ref(false)
+
+function probeImageSize(src) {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    img.onload = () => resolve({ w: img.naturalWidth, h: img.naturalHeight })
+    img.onerror = () => reject(new Error('load failed'))
+    img.src = src
+  })
+}
+
+watch(
+  () => [
+    editingMode.value,
+    currentBg.value.type,
+    currentBg.value.url,
+    currentBg.value.stored,
+    currentBg.value.ph,
+    currentBg.value.fit,
+    currentBg.value.w,
+    currentBg.value.h,
+  ],
+  async () => {
+    bgInfo.value = ''
+    bgWarn.value = false
+    const bg = currentBg.value
+    if (!bg || bg.type !== 'image') return
+    const src = resolveBgUrl(editingMode.value)
+    if (!src) return
+    let w = bg.w || 0
+    let h = bg.h || 0
+    if (!w || !h) {
+      try {
+        const d = await probeImageSize(src)
+        w = d.w
+        h = d.h
+      } catch (e) {
+        return
+      }
+    }
+    const sw = Math.round((window.innerWidth || 0) * (window.devicePixelRatio || 1))
+    const sh = Math.round((window.innerHeight || 0) * (window.devicePixelRatio || 1))
+    // 铺满=取大值（可能放大），完整=取小值
+    const scale = (bg.fit === 'contain' ? Math.min : Math.max)(sw / w, sh / h)
+    bgWarn.value = scale > 1.02
+    bgInfo.value = tf(bgWarn.value ? 'appearance.bgInfoWarn' : 'appearance.bgInfo', {
+      w,
+      h,
+      sw,
+      sh,
+      k: scale.toFixed(2),
+    })
+  },
+  { immediate: true },
+)
+
+const modeOptions = computed(() => [
+  { value: 'light', label: t('appearance.modeLight') },
+  { value: 'dark', label: t('appearance.modeDark') },
+  { value: 'system', label: t('appearance.modeSystem') },
+])
+const bgTypeOptions = computed(() => [
+  { value: 'none', label: t('appearance.bgNone') },
+  { value: 'color', label: t('appearance.bgColor') },
+  { value: 'gradient', label: t('appearance.bgGradient') },
+  { value: 'image', label: t('appearance.bgImage') },
+])
+const editModeOptions = computed(() => [
+  { value: 'light', label: t('appearance.modeLight') },
+  { value: 'dark', label: t('appearance.modeDark') },
+])
+const fitOptions = computed(() => [
+  { value: 'cover', label: t('appearance.bgFitCover') },
+  { value: 'contain', label: t('appearance.bgFitContain') },
+])
+
+function setBgType(type) {
+  currentBg.value.type = type
+}
+
+function applyGradient(g) {
+  const bg = currentBg.value
+  bg.type = 'gradient'
+  bg.from = g.from
+  bg.to = g.to
+  bg.angle = g.angle
+}
+
+// 上传：原图直存 IndexedDB（不做二次压缩），清晰度不受损
+async function onUpload(e) {
+  uploadError.value = ''
+  const file = e.target.files && e.target.files[0]
+  if (!file) return
+  if (!file.type.startsWith('image/')) {
+    uploadError.value = t('appearance.uploadFailed')
+    return
+  }
+  try {
+    const ok = await setImageFile(editingMode.value, file)
+    if (!ok) uploadError.value = t('appearance.uploadFailed')
+  } catch (err) {
+    console.warn('[theme] 上传背景图失败：', err)
+    uploadError.value = t('appearance.uploadFailed')
+  }
+  e.target.value = ''
+}
+
+function onUrlInput(e) {
+  const val = e.target.value.trim()
+  setImageUrl(editingMode.value, val)
+}
 
 const freqOptions = computed(() => [
   { value: 0, label: lang.value === 'zh' ? '当天' : 'Today' },
