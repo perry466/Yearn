@@ -37,6 +37,19 @@
 
 ---
 
+## ✨ Features
+
+- 🌙 **Full lunar calendar** — record birthdays using lunar dates (with leap-month support); the calendar view shows solar + lunar side by side, today highlighted.
+- 🎨 **Appearance & Theme** *(new in v1.1.0)*
+  - **6 color presets** — vibrant orange / sakura pink / sky blue / forest green / violet / slate gray, runtime-switchable (CSS variables, zero component changes)
+  - **Custom background** — solid color, gradient, online image, or uploaded local image (**original stored in IndexedDB, no lossy compression**); separate settings for light & dark mode, with **blur + dim** sliders
+  - **UI opacity slider** — drag to let the wallpaper show through cards/panels (glass effect); inputs and segmented controls stay opaque for readability
+- 📅 Calendar view · 📊 Stats with drill-down · 🔔 Reminders (Server酱 + email, daily 09:00) · 🖱 System-tray Windows app.
+
+> 💡 All appearance & theme settings live in **Settings → Appearance** and take effect instantly — no restart needed.
+
+---
+
 ## 🚀 Local Setup (from scratch)
 
 > 💡 **Easiest way to run the whole project** — one backend process serves the API **and** the built frontend, and the reminder scheduler starts automatically.
