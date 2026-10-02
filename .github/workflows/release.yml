@@ -33,6 +33,9 @@ jobs:
     steps:
       - name: 拉取代码
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # 完整历史，生成变更摘要需要区间内的全部提交
+          fetch-tags: true # 需要上一个 tag 来确定本次变更范围
 
       - name: 安装 Node 并构建前端
         run: |
@@ -100,18 +103,60 @@ jobs:
           path: diagnosis.txt
           if-no-files-found: warn
 
+      # 从 git 历史自动提炼本版本变更（依赖 conventional commit 规范）
+      # 归类：✨ 新增 / 🗑️ 移除 / 🐛 修复 / ♻️ 重构 / ⚡ 优化 / 📝 文档 / 🧹 其他
+      # 每次发版只需按规范写 commit message，Release 说明自动归类，无需手改模板
+      - name: 生成变更摘要
+        env:
+          TAG_NAME: ${{ github.ref_name }}
+        run: |
+          PREV_TAG=$(git tag --sort=-version:refname | grep -v "^${TAG_NAME}\$" | head -n 1 || true)
+          if [ -z "$PREV_TAG" ]; then
+            RANGE_DESC="（首次发布）"
+            GIT_RANGE="HEAD"
+          else
+            RANGE_DESC="（自 ${PREV_TAG} 起）"
+            GIT_RANGE="${PREV_TAG}..HEAD"
+          fi
+
+          added=""; removed=""; fixed=""; refactored=""; perf=""; docs=""; other=""
+
+          while IFS='|' read -r subject sha; do
+            [ -z "$subject" ] && continue
+            prefix=$(printf '%s' "${subject%%:*}" | tr '[:upper:]' '[:lower:]')
+            title="${subject#*: }"
+            case "$prefix" in
+              feat)
+                if printf '%s' "$title" | grep -qE "移除|删除|去掉|丢弃|drop|remove|removed|delete"; then
+                  removed+="- ${title}"$'\n'
+                else
+                  added+="- ${title}"$'\n'
+                fi ;;
+              fix)      fixed+="- ${title}"$'\n' ;;
+              refactor) refactored+="- ${title}"$'\n' ;;
+              perf)     perf+="- ${title}"$'\n' ;;
+              docs)     docs+="- ${title}"$'\n' ;;
+              *)        other+="- ${subject}"$'\n' ;;
+            esac
+          done < <(git log "$GIT_RANGE" --no-merges --pretty=format:"%s|%h")
+
+          {
+            echo "### 📋 本版本变更 ${RANGE_DESC}"
+            echo ""
+            [ -n "$added" ]      && { echo "#### ✨ 新增功能"; echo "$added"; echo ""; }
+            [ -n "$removed" ]    && { echo "#### 🗑️ 移除"; echo "$removed"; echo ""; }
+            [ -n "$fixed" ]      && { echo "#### 🐛 问题修复"; echo "$fixed"; echo ""; }
+            [ -n "$refactored" ] && { echo "#### ♻️ 重构"; echo "$refactored"; echo ""; }
+            [ -n "$perf" ]       && { echo "#### ⚡ 性能优化"; echo "$perf"; echo ""; }
+            [ -n "$docs" ]       && { echo "#### 📝 文档"; echo "$docs"; echo ""; }
+            [ -n "$other" ]      && { echo "#### 🧹 其他"; echo "$other"; echo ""; }
+          } > CHANGES_SUMMARY.md
+
+          echo "===== 变更摘要预览 ====="; cat CHANGES_SUMMARY.md; echo "===== 结束 ====="
+
       - name: 生成发布说明
         run: |
           cat > RELEASE_NOTES.md <<'EOF'
-          ### 🆕 新增功能
-
-          - 🎨 **主题色切换**：6 套主色（活力橙 / 樱花粉 / 静谧蓝 / 森林绿 / 紫罗兰 / 石墨灰），运行时一键切换，组件零改动
-          - 🖼 **自定义背景**：纯色 / 渐变 / 在线图片 / 本地上传（**原图直存 IndexedDB，零有损压缩**）；浅色与深色各设一套，附「模糊 + 压暗」双滑块
-          - ✨ **界面不透明度滑块**：拖动让壁纸透出卡片 / 面板（毛玻璃感），输入框与分段控件保持不透明、始终清晰可读
-          - 首帧防闪烁：主题在页面渲染前应用，开门即用
-
-          > 💡 所有外观与主题改动都无需重启服务，在「设置 → 外观」里改即生效、自动保存。
-
           ### 怎么用
 
           1. 下载下面的 `Yearn-${{ github.ref_name }}-windows-x64.zip`
@@ -142,6 +187,10 @@ jobs:
           想从源码启动、或想自己打包，请查看 [README_zh.md](https://github.com/perry466/Yearn/blob/main/README_zh.md)
           的「十、打包为 Windows 桌面应用」一节。
           EOF
+
+          # 把变更摘要拼到最前面
+          { cat CHANGES_SUMMARY.md; echo ""; cat RELEASE_NOTES.md; } > RELEASE_NOTES.tmp
+          mv RELEASE_NOTES.tmp RELEASE_NOTES.md
 
       # 用 runner 自带的 gh CLI 而不是第三方 action：
       # softprops/action-gh-release 是 Node 20 action，在被强制跑在 Node 24 的 runner 上
