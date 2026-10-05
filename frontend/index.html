@@ -38,15 +38,10 @@
               root.style.setProperty('--bg-color', bg.from || '#ffffff');
               root.style.setProperty('--bg-image', 'linear-gradient(' + (bg.angle || 135) + 'deg, ' + (bg.from || '#ffffff') + ', ' + (bg.to || '#dddddd') + ')');
             } else if (bg.type === 'image') {
-              var img = bg.stored ? (bg.ph || '') : (bg.url || '');
+              var img = bg.url || '';
               if (img) {
                 root.style.setProperty('--bg-color', '#f3f4f6');
                 root.style.setProperty('--bg-image', 'url("' + img + '")');
-                // 本地上传：首帧只有低清占位图，先轻微虚化过渡；原图由 JS 载入后替换
-                if (bg.stored && !blur) {
-                  root.style.setProperty('--bg-filter', 'blur(28px)');
-                  root.style.setProperty('--bg-scale', '1.08');
-                }
               }
             }
           }

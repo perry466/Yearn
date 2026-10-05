@@ -49,6 +49,9 @@ hiddenimports += [
     "uvicorn.lifespan.on",
     "uvicorn.logging",
     "app.scheduler",
+    "app.models.theme",
+    "app.routers.theme",
+    "app.schemas.theme",
 ]
 
 a = Analysis(

@@ -37,7 +37,7 @@ if getattr(sys, "frozen", False):
 else:
     DATA_DIR = BASE_DIR
 
-DATABASE_URL = f"sqlite:///{DATA_DIR}/birthday.db"
+DATABASE_URL = os.getenv("YERN_DATABASE_URL", f"sqlite:///{DATA_DIR}/birthday.db")
 
 # ========== 服务器配置 ==========
 HOST = os.getenv("YERN_HOST", "0.0.0.0")

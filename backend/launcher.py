@@ -155,10 +155,15 @@ def _notify_error() -> None:
 
 
 def _open_browser_when_ready(url: str) -> None:
-    """等服务 ready 后再打开浏览器；服务起不来则不开（避免用户看到拒绝连接页）。"""
+    """等服务 ready 后再打开浏览器；服务起不来则不开（避免用户看到拒绝连接页）。
+
+    打开的地址带 ?t=<时间戳> 查询参数，使浏览器把它当作全新 URL，
+    强制走网络拉取最新的 index.html（绕开升级前缓存的旧 index.html，
+    彻底免手动刷新）。
+    """
     health_url = f"{url}/health"
     if _wait_for_server(health_url, timeout=30.0):
-        webbrowser.open(url)
+        webbrowser.open(f"{url}/?t={int(time.time())}")
         logging.info("Browser opened after server ready: %s", url)
     else:
         logging.error("Server did not start within 30s, skipping browser open")

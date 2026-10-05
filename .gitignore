@@ -55,3 +55,4 @@ docs/screenshots/*.err
 .env
 .env.local
 *.log
+backend/images/

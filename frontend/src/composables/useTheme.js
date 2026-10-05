@@ -1,17 +1,20 @@
 import { ref, reactive, computed, watch } from 'vue'
 import { ACCENT_PRESETS } from '../theme/presets'
 import {
-  putBgBlob,
-  getBgBlob,
-  delBgBlob,
+  uploadBlob,
+  imageUrl,
+  deleteImage,
+  getBgBlob, // 仅一次性迁移用
+  delBgBlob, // 仅一次性迁移用
   fileToImage,
   imageToBlob,
   imageToDataUrl,
 } from '../utils/bgImage'
 
 // 主题状态（单例）：颜色模式 + 主题色 + 自定义背景（浅色/深色各一套）
-// 持久化到 localStorage: 'yearn.theme'（JSON）
+// 真源在「后端」（/api/theme），localStorage 'yearn.theme' 仅作首帧镜像/离线兜底。
 const STORAGE_KEY = 'yearn.theme'
+const MIGRATED_KEY = 'yearn.theme.migrated' // 标记旧 IndexedDB 是否已迁到后端
 const ACCENT_IDS = ACCENT_PRESETS.map((p) => p.id)
 
 export function defaultBackground() {
@@ -21,19 +24,22 @@ export function defaultBackground() {
     from: '#ffedd5',
     to: '#fed7aa',
     angle: 135,
-    url: '', // 外链图片地址
+    url: '', // 外链图片地址 / 后端图片地址（stored 时）
     fit: 'cover', // cover | contain（仅图片：铺满 / 完整显示）
     blur: 0, // px
     dim: 0.15, // 0~1 蒙版不透明度
-    // 本地上传的图片：原图存入 IndexedDB（localStorage 装不下高分辨率图）
-    stored: false, // true = 使用 IndexedDB 里的原图
-    ph: '', // 首帧占位小图（dataURL，几 KB）
+    // 本地上传的图片：存到后端（DATA_DIR/images/），所有浏览器共享同一张
+    stored: false, // true = 使用后端图片
+    imageId: 0, // 后端图片 id（stored 时有效）
+    ph: '', // 兼容旧版（已不再使用，留空）
     w: 0, // 源图原始像素宽度（用于清晰度诊断）
     h: 0, // 源图原始像素高度
   }
 }
 
 const SCHEMA_VERSION = 2
+// 本地上传图：仅超大图降采样（避免解码爆内存）；以内一律原图直存、零重编码
+const MAX_STORED_EDGE = 4096
 
 function loadState() {
   let saved = {}
@@ -95,83 +101,153 @@ const hasCustomBackground = computed(
   () => !!activeBackground.value && activeBackground.value.type !== 'none',
 )
 
-// —— 本地上传图：原图存 IndexedDB，运行时用 blob URL 引用（不写进 localStorage）——
-const objectUrls = { light: '', dark: '' }
-// 长边超过该值才降采样（避免解码爆内存）；以内一律原图直存、零重编码
-const MAX_STORED_EDGE = 4096
-
-// 当前实际用于渲染的背景图地址（本地上传优先用 blob URL，回退占位图；否则用外链）
+// 当前实际用于渲染的背景图地址（后端图片或外链）
 function resolveBgUrl(mode) {
   const bg = state.background[mode]
   if (!bg || bg.type !== 'image') return ''
-  if (bg.stored) return objectUrls[mode] || bg.ph || ''
   return bg.url || ''
 }
 
-// 启动时把 IndexedDB 里的原图取回，生成 blob URL 并重绘
-async function refreshStoredImages() {
-  let changed = false
-  for (const mode of ['light', 'dark']) {
-    const bg = state.background[mode]
-    if (!bg || !bg.stored) continue
-    try {
-      const blob = await getBgBlob(mode)
-      if (blob) {
-        if (objectUrls[mode]) URL.revokeObjectURL(objectUrls[mode])
-        objectUrls[mode] = URL.createObjectURL(blob)
-        changed = true
-      }
-    } catch (e) {
-      console.warn('[theme] 读取本地背景原图失败：', e)
-    }
+// ============ 与后端同步 ============
+// localStorage 镜像（持久化用，scheme 与后端一致）
+function buildServerPayload() {
+  return {
+    v: state.v,
+    mode: state.mode,
+    accent: state.accent,
+    uiAlpha: state.uiAlpha,
+    background: {
+      light: { ...state.background.light },
+      dark: { ...state.background.dark },
+    },
   }
-  if (changed) applyBackground()
 }
 
-// 保存本地上传的图片：优先原图直存（保画质），仅超大图降采样
+// 改动后回写服务器（防抖，避免滑块拖动刷屏）
+let putTimer = null
+function schedulePutServer() {
+  if (putTimer) clearTimeout(putTimer)
+  putTimer = setTimeout(() => {
+    putTimer = null
+    fetch('/api/theme', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ data: buildServerPayload() }),
+    }).catch((e) => console.warn('[theme] 保存到服务器失败：', e))
+  }, 400)
+}
+
+async function fetchServerTheme() {
+  try {
+    const r = await fetch('/api/theme')
+    if (!r.ok) return null
+    const j = await r.json()
+    return j.data || null
+  } catch (e) {
+    return null
+  }
+}
+
+// 一次性迁移：把旧 IndexedDB 里的原图上传到后端，并把本地设置整包 PUT 到服务器
+async function migrateLegacyToServer() {
+  if (localStorage.getItem(MIGRATED_KEY) === '1') return
+  const bg = state.background
+  const hasLegacy =
+    bg.light.stored ||
+    bg.dark.stored ||
+    state.mode !== 'system' ||
+    state.accent !== 'orange' ||
+    state.uiAlpha !== 1
+  if (!hasLegacy) {
+    localStorage.setItem(MIGRATED_KEY, '1')
+    return
+  }
+  for (const mode of ['light', 'dark']) {
+    const b = bg[mode]
+    if (b && b.stored) {
+      try {
+        const blob = await getBgBlob(mode)
+        if (blob) {
+          const id = await uploadBlob(blob)
+          b.imageId = id
+          b.url = imageUrl(id)
+          await delBgBlob(mode) // 迁移完成，清掉旧 IndexedDB 原图
+        }
+      } catch (e) {
+        console.warn('[theme] 迁移本地背景失败：', e)
+      }
+    }
+  }
+  await fetch('/api/theme', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ data: buildServerPayload() }),
+  }).catch((e) => console.warn('[theme] 迁移到服务器失败：', e))
+  localStorage.setItem(MIGRATED_KEY, '1')
+}
+
+// 启动后从服务器拉取（跨浏览器跟随同一设置；若服务器为空则迁移本地旧数据）
+async function reconcileWithServer() {
+  const server = await fetchServerTheme()
+  if (server) {
+    // 服务器为真源：覆盖本地并写回镜像
+    state.mode = server.mode || state.mode
+    state.accent = ACCENT_IDS.includes(server.accent) ? server.accent : state.accent
+    state.uiAlpha = Math.min(1, Math.max(0.4, Number(server.uiAlpha) || 1))
+    if (server.background && server.background.light) {
+      state.background.light = { ...defaultBackground(), ...server.background.light }
+    }
+    if (server.background && server.background.dark) {
+      state.background.dark = { ...defaultBackground(), ...server.background.dark }
+    }
+    applyAll()
+    persist()
+    return
+  }
+  // 服务器为空 → 迁移本地旧数据（仅首次）
+  await migrateLegacyToServer()
+}
+
+// ============ 本地上传图：原图直存后端（不再走 IndexedDB）============
 async function setImageFile(mode, file) {
   const img = await fileToImage(file)
   const long = Math.max(img.naturalWidth, img.naturalHeight)
   const blob = long > MAX_STORED_EDGE ? await imageToBlob(img, MAX_STORED_EDGE, 0.92) : file
-  const ph = imageToDataUrl(img, 48, 0.6)
-  await putBgBlob(mode, blob)
-  if (objectUrls[mode]) URL.revokeObjectURL(objectUrls[mode])
-  objectUrls[mode] = URL.createObjectURL(blob)
+  const id = await uploadBlob(blob)
   const bg = state.background[mode]
   bg.type = 'image'
   bg.stored = true
-  bg.ph = ph
-  bg.url = ''
+  bg.imageId = id
+  bg.url = imageUrl(id)
+  bg.ph = ''
   bg.w = img.naturalWidth
   bg.h = img.naturalHeight
   applyBackground()
-  return persist()
+  return persist() // 镜像写回 localStorage；deep watch 会再回写服务器
 }
 
 async function clearStoredImage(mode) {
   const bg = state.background[mode]
-  if (objectUrls[mode]) {
-    URL.revokeObjectURL(objectUrls[mode])
-    objectUrls[mode] = ''
+  if (bg.imageId) {
+    await deleteImage(bg.imageId)
+    bg.imageId = 0
   }
   bg.stored = false
+  bg.url = ''
   bg.ph = ''
   bg.w = 0
   bg.h = 0
-  try {
-    await delBgBlob(mode)
-  } catch (e) {
-    console.warn('[theme] 清除本地背景原图失败：', e)
-  }
 }
 
-// 用户填写外链地址：改用外链，并清掉本地上传的原图
+// 用户填写外链地址：改用外链，并清掉后端图片
 function setImageUrl(mode, url) {
   const bg = state.background[mode]
   bg.url = url
+  bg.stored = false
+  bg.imageId = 0
+  bg.ph = ''
   if (!url) return
   bg.type = 'image'
-  if (bg.stored) clearStoredImage(mode)
 }
 
 function persist() {
@@ -179,7 +255,6 @@ function persist() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
     return true
   } catch (e) {
-    // 多为图片过大导致超出配额；本地上传图已改存 IndexedDB，这里仅兜底外链/占位图
     console.warn('[theme] 保存失败：', e)
     return false
   }
@@ -213,7 +288,6 @@ function applyBackground() {
     return
   }
   root.classList.add('has-custom-bg')
-  // 铺满 / 完整（仅图片有意义；渐变与纯色无固有尺寸，统一 cover 填满）
   root.style.setProperty(
     '--bg-size',
     bg.type === 'image' && bg.fit === 'contain' ? 'contain' : 'cover',
@@ -223,7 +297,6 @@ function applyBackground() {
     root.style.setProperty('--bg-filter', `blur(${blur}px)`)
     root.style.setProperty('--bg-scale', '1.08')
   } else {
-    // 不虚化时完全去掉滤镜层，避免图片被重栅格化而发虚
     root.style.removeProperty('--bg-filter')
     root.style.setProperty('--bg-scale', '1')
   }
@@ -265,15 +338,17 @@ export function useTheme() {
   if (!started && typeof document !== 'undefined') {
     started = true
     applyAll()
-    refreshStoredImages()
     watch(
       state,
       () => {
         applyAll()
         persist()
+        schedulePutServer()
       },
       { deep: true },
     )
+    // 启动后与服务器对账（拉取最新 / 必要时迁移旧数据）
+    reconcileWithServer()
   }
 
   return {
