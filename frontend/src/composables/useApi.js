@@ -45,6 +45,13 @@ export function useApi() {
   // 删除
   const deleteBirthday = (id) => api.delete(`/birthdays/${id}`)
 
+  // 农历：某农历年的月份表（含闰月、每月真实天数 29/30）
+  const getLunarCalendar = (year) => api.get('/lunar/calendar', { params: { year } })
+
+  // 农历：某农历年某月的天数
+  const getLunarMonthDays = (year, month, isLeap = false) =>
+    api.get('/lunar/month-days', { params: { year, month, is_leap: isLeap } })
+
   // 系统设置
   const getSettings = () => api.get('/settings')
   const updateSettings = (data) => api.put('/settings', data)
@@ -59,6 +66,8 @@ export function useApi() {
     createBirthday,
     updateBirthday,
     deleteBirthday,
+    getLunarCalendar,
+    getLunarMonthDays,
     getSettings,
     updateSettings,
     testReminder,

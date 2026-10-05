@@ -61,6 +61,7 @@
     "lunarMonth": "Lunar Month",
     "lunarDay": "Lunar Day",
     "isLeapMonth": "Leap Month",
+    "lunarFallbackHint": "Years without a 30th day fall back to the 29th",
     "category": "Category",
     "remark": "Remark",
     "remarkPlaceholder": "Notes (optional)",

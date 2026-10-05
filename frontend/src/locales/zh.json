@@ -61,6 +61,7 @@
     "lunarMonth": "农历月",
     "lunarDay": "农历日",
     "isLeapMonth": "闰月",
+    "lunarFallbackHint": "该月没有三十的年份，会自动按廿九提醒",
     "category": "分类",
     "remark": "备注",
     "remarkPlaceholder": "备注信息（可选）",

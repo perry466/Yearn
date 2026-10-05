@@ -165,6 +165,20 @@
                   <p class="text-xs text-center text-primary-600 dark:text-primary-300 font-medium">
                     🌙 {{ lunarDisplayText }}
                   </p>
+
+                  <!-- 该月只有廿九 / 闰月不存在 / 三十回退说明 -->
+                  <p
+                    v-if="lunarMonthWarning"
+                    class="text-xs text-center text-amber-600 dark:text-amber-400"
+                  >
+                    ⚠️ {{ lunarMonthWarning }}
+                  </p>
+                  <p
+                    v-else-if="lunarPick.day === 30"
+                    class="text-xs text-center text-gray-400 dark:text-gray-500"
+                  >
+                    {{ t('form.lunarFallbackHint') }}
+                  </p>
                 </div>
               </div>
             </div>
@@ -277,6 +291,7 @@
 <script setup>
 import { ref, watch, computed, nextTick } from 'vue'
 import { useI18n } from '../composables/useI18n'
+import { useApi } from '../composables/useApi'
 
 const props = defineProps({
   show: Boolean,
@@ -285,6 +300,7 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'save'])
 const { t, lang } = useI18n()
+const { getLunarCalendar } = useApi()
 
 // 今天是字符串形式，用于 date input max 属性
 const today = new Date()
@@ -337,9 +353,50 @@ const nameInputRef = ref(null)
 
 const lunarPick = ref({ year: 2000, month: 1, day: 1, is_leap: false })
 
-// 农历天数：正月和腊月30天，其他29天
+// 某农历年各月真实天数缓存：year -> [{ month, is_leap, days }]，null 表示拉取失败
+const lunarCalCache = ref({})
+
+async function ensureLunarCalendar(year) {
+  if (year in lunarCalCache.value || year < 1900 || year > 2099) return
+  try {
+    const data = await getLunarCalendar(year)
+    lunarCalCache.value = { ...lunarCalCache.value, [year]: data?.months || [] }
+  } catch (e) {
+    lunarCalCache.value = { ...lunarCalCache.value, [year]: null }
+  }
+}
+
+function findLunarMonth() {
+  const months = lunarCalCache.value[lunarPick.value.year]
+  if (!months) return undefined
+  const { month, is_leap } = lunarPick.value
+  return months.find(m => m.month === month && !!m.is_leap === !!is_leap)
+}
+
+// 当前选中月在该农历年的真实天数（29 或 30）。
+// 农历大小月每年都不同（1977 年八月有三十，2026 年八月只有廿九），必须查表，
+// 不能硬编码 —— 否则像「八月三十」这样的日期根本选不到。
 const lunarDaysInMonth = computed(() => {
-  return [1, 12].includes(lunarPick.value.month) ? 30 : 29
+  const months = lunarCalCache.value[lunarPick.value.year]
+  if (!months) return 30 // 还没加载完：宽松给 30，避免合法日期被临时隐藏
+  return findLunarMonth()?.days ?? 29
+})
+
+// 闰月不存在 / 该月只有廿九 的提示
+const lunarMonthWarning = computed(() => {
+  if (!lunarCalCache.value[lunarPick.value.year]) return ''
+  const zh = lang.value === 'zh'
+  const monthName = lunarMonthNames[lunarPick.value.month - 1]
+  const hit = findLunarMonth()
+  if (!hit) {
+    return zh ? `该年没有闰${monthName}` : `No leap ${monthName} in that year`
+  }
+  if (hit.days < 30) {
+    return zh
+      ? `该年${monthName}只有廿九（小月），没有三十`
+      : `Month ${lunarPick.value.month} has only 29 days that year`
+  }
+  return ''
 })
 
 const lunarDisplayText = computed(() => {
@@ -351,7 +408,11 @@ const lunarDisplayText = computed(() => {
 // 日期合法性：不能选未来
 const isDateValid = computed(() => {
   if (form.value.is_lunar) {
-    return lunarPick.value.year <= currentYear
+    if (lunarPick.value.year > currentYear) return false
+    // 闰月在该年不存在时不允许保存（否则换算不出公历）
+    const months = lunarCalCache.value[lunarPick.value.year]
+    if (months && !findLunarMonth()) return false
+    return true
   }
   if (!form.value.solar_date) return true
   // 截取年份，确保不能选当前年及以后
@@ -368,6 +429,7 @@ function switchToSolar() {
 // 切换到农历
 function switchToLunar() {
   form.value.is_lunar = true
+  ensureLunarCalendar(lunarPick.value.year)
 }
 
 // 打开弹窗时自动聚焦姓名
@@ -411,15 +473,21 @@ watch(() => props.show, (val) => {
       form.value = { ...defaultForm }
       lunarPick.value = { year: 2000, month: 1, day: 1, is_leap: false }
     }
+    // 年份可能与上次相同而 watch 不触发，这里主动补一次（编辑旧记录尤其需要）
+    ensureLunarCalendar(lunarPick.value.year)
   }
 })
 
-// 农历日超界修正
-watch(() => lunarPick.value.month, () => {
-  if (lunarPick.value.day > lunarDaysInMonth.value) {
-    lunarPick.value.day = lunarDaysInMonth.value
-  }
-})
+// 切换农历年 / 月 / 闰月时：拉取该年的月份天数表，并把「日」钳制到合法范围
+watch(
+  () => [lunarPick.value.year, lunarPick.value.month, lunarPick.value.is_leap],
+  async () => {
+    await ensureLunarCalendar(lunarPick.value.year)
+    const max = lunarDaysInMonth.value
+    if (lunarPick.value.day > max) lunarPick.value.day = max
+  },
+  { immediate: true }
+)
 
 async function handleSubmit() {
   if (!form.value.name.trim()) return
