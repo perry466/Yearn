@@ -138,7 +138,11 @@ jobs:
               docs)     docs+="- ${title}"$'\n' ;;
               *)        other+="- ${subject}"$'\n' ;;
             esac
-          done < <(git log "$GIT_RANGE" --no-merges --pretty=format:"%s|%h")
+          # ⚠️ 必须用 tformat 而不是 format：
+          # --pretty=format: 生成的输出最后一行没有换行符，bash 的 `while read`
+          # 遇到无换行结尾的最后一行时不执行循环体 —— 结果就是「最早那条提交被静默丢弃」。
+          # 只有一条提交时更明显：变更摘要会整个为空。tformat 会补上尾随换行。
+          done < <(git log "$GIT_RANGE" --no-merges --pretty=tformat:"%s|%h")
 
           {
             echo "### 📋 本版本变更 ${RANGE_DESC}"
