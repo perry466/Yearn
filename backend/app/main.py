@@ -17,7 +17,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 
 from .core.database import Base, engine, SessionLocal
-from .routers import birthday, settings, theme
+from .routers import birthday, settings, theme, lunar
 from .models.settings import Settings
 from .models.theme import ThemeSetting, BackgroundImage
 from .services.reminder import check_and_send_reminders
@@ -145,6 +145,7 @@ app.add_middleware(
 app.include_router(birthday.router)
 app.include_router(settings.router)
 app.include_router(theme.router)
+app.include_router(lunar.router)
 
 
 @app.get("/health", tags=["健康检查"])
