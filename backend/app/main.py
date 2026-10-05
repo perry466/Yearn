@@ -182,9 +182,19 @@ if DIST.exists():
             raise HTTPException(status_code=404, detail="Not Found")
         file_path = DIST / full_path
         if full_path and file_path.exists() and file_path.is_file():
-            return FileResponse(str(file_path))
+            # Vite 产物文件名带内容哈希（assets/index.ab12cd.js），可长期缓存
+            if "assets/" in full_path:
+                return FileResponse(
+                    str(file_path),
+                    headers={"Cache-Control": "public, max-age=31536000, immutable"},
+                )
+            # 其余静态文件（favicon 等）不缓存，便于更新
+            return FileResponse(str(file_path), headers={"Cache-Control": "no-cache"})
         # SPA fallback：未匹配到的前端路由一律返回 index.html
-        return FileResponse(str(DIST / "index.html"))
+        # index.html 不带哈希，必须 no-cache，否则浏览器会一直用旧缓存、看不到新版本
+        return FileResponse(
+            str(DIST / "index.html"), headers={"Cache-Control": "no-cache"}
+        )
 else:
     @app.get("/", tags=["健康检查"])
     def root():
