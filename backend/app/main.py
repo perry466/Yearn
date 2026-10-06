@@ -20,6 +20,7 @@ from .core.database import Base, engine, SessionLocal
 from .routers import birthday, settings, theme, lunar
 from .models.settings import Settings
 from .models.theme import ThemeSetting, BackgroundImage
+from .models.reminder_log import ReminderLog  # noqa: F401  确保建表
 from .services.reminder import check_and_send_reminders
 
 # 配置日志
@@ -104,12 +105,18 @@ async def lifespan(app: FastAPI):
     _init_settings()
 
     # 每天 09:00（北京时间）检查一次
+    # misfire_grace_time：允许任务迟到 2 小时仍补跑。
+    #   默认只有 1 秒 —— 合盖休眠 / 关机错过 09:00 那一刻，任务会被判为「误点」直接丢弃，
+    #   而启动补检早在合盖前就跑完了，结果是整天一条都不推。
+    # coalesce：补跑时只执行一次，不把错过的次数累积起来重复发。
     scheduler.add_job(
         check_and_send_reminders,
         CronTrigger(hour=9, minute=0, timezone="Asia/Shanghai"),
         id="daily_reminder",
         name="每日生日提醒检查",
         replace_existing=True,
+        misfire_grace_time=7200,
+        coalesce=True,
     )
     scheduler.start()
     logger.info("调度器已启动（每天 09:00 北京时间检查；频率/渠道可在网页设置页调整）")

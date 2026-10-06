@@ -40,12 +40,16 @@ def main():
     scheduler = BackgroundScheduler(timezone="Asia/Shanghai")
 
     # 每天早上 9:00 执行（北京时间）
+    # misfire_grace_time=7200：允许任务迟到 2 小时仍补跑（默认 1 秒，休眠即丢）
+    # coalesce=True：补跑只执行一次，不累积重复发送
     scheduler.add_job(
         check_and_send_reminders,
         CronTrigger(hour=9, minute=0, timezone="Asia/Shanghai"),
         id="daily_reminder",
         name="每日生日提醒检查",
         replace_existing=True,
+        misfire_grace_time=7200,
+        coalesce=True,
     )
 
     scheduler.start()

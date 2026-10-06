@@ -52,6 +52,7 @@ hiddenimports += [
     "app.models.theme",
     "app.routers.theme",
     "app.schemas.theme",
+    "app.models.reminder_log",
 ]
 
 a = Analysis(
