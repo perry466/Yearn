@@ -14,6 +14,7 @@ from typing import Optional
 import httpx
 from ..core.database import SessionLocal
 from ..models.settings import Settings
+from ..models.reminder_log import ReminderLog
 from .birthday import get_upcoming_birthdays
 
 logger = logging.getLogger(__name__)
@@ -26,8 +27,32 @@ DEFAULT_TEMPLATE = (
 )
 DEFAULT_DAYS = [30, 15, 7, 1, 0]
 
-# 已提醒记录：{(birthday_id, days_until): True}，避免同一天重复发送（进程内去重）
-_reminded: dict = {}
+
+def _already_sent(db, birthday_id: int, days_left: int, target_date: str) -> bool:
+    """本次生日的这个提前天数是否已经推送过（查库，进程重启后依然有效）。"""
+    try:
+        return db.query(ReminderLog).filter(
+            ReminderLog.birthday_id == birthday_id,
+            ReminderLog.days_until == days_left,
+            ReminderLog.target_date == (target_date or ""),
+        ).first() is not None
+    except Exception as e:
+        logger.warning(f"[去重] 查询失败，按未发送处理: {e}")
+        return False
+
+
+def _mark_sent(db, birthday_id: int, days_left: int, target_date: str) -> None:
+    """记录已推送。唯一约束冲突时视为已发送，不影响主流程。"""
+    try:
+        db.add(ReminderLog(
+            birthday_id=birthday_id,
+            days_until=days_left,
+            target_date=target_date or "",
+        ))
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        logger.warning(f"[去重] 写入失败（可能已发送过）: {e}")
 
 
 class _SafeDict(dict):
@@ -173,9 +198,9 @@ def check_and_send_reminders():
             if days_left is None or days_left not in days_list:
                 continue
 
-            key = (b["id"], days_left)
-            if _reminded.get(key):
-                logger.info(f"[跳过] {b['name']} - {days_left}天 (今日已提醒)")
+            target_date = b.get("upcoming_date") or ""
+            if _already_sent(db, b["id"], days_left, target_date):
+                logger.info(f"[跳过] {b['name']} - {days_left}天 (本次生日已提醒过)")
                 continue
 
             display = f"农历 {b['lunar_date']}" if b["is_lunar"] else f"公历 {b['solar_date']}"
@@ -187,7 +212,7 @@ def check_and_send_reminders():
             )
 
             if results["email"] or results["serverchan"]:
-                _reminded[key] = True
+                _mark_sent(db, b["id"], days_left, target_date)
                 sent_count += 1
                 logger.info(
                     f"[成功] {b['name']}: "
